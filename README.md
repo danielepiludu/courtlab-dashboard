@@ -24,6 +24,17 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 - Punteggio con **animazioni** accanto al numero quando si segna (+1/+2/+3, scintille sul +3) o si annulla.
 - Lo stato si salva a ogni azione: chiudendo l'app per sbaglio la partita riprende esattamente da dove era. Il tasto Indietro apre il menu invece di uscire.
 
+## Motore INT (Fase 3)
+
+Funzioni pure in `src/engine/int.ts`, parametri in `src/engine/intConfig.ts`, test in `src/engine/int.test.ts`.
+
+- **a) In campo, cronometro in corso** (sale): `punti/min = (4 + 0,5 × min consecutivi) × (1 + 0,01 × min totali)`, integrata in modo esatto (la velocità cresce durante il tratto). Con INT 0 e 0 minuti: 27 dopo 5′, 69 dopo 10′, 100 a circa 12′54″.
+- **b) In campo, cronometro fermo** (scende piano): `INT × exp(−t / 15 min reali)`.
+- **c) In panchina** (tempo reale, anche a cronometro fermo): `INT_uscita × exp(−t / 6 min reali)` — da 80, dopo 6′ ≈ 29.
+- INT sempre tra 0 e 100; i minuti totali non si azzerano; minuti consecutivi azzerati all'uscita; chi rientra riparte dal valore recuperato.
+- Lo stato salvato contiene valori e istanti di ingresso/uscita: dopo una chiusura l'INT si ricostruisce esattamente. Ogni 30 s viene registrato un campione per il grafico del resoconto.
+- **Vista debug nascosta**: nella schermata partita tieni premuto il cronometro per circa 1 secondo.
+
 ## Comandi
 
 ```bash
@@ -102,5 +113,5 @@ npx cap open android      # Android Studio → Build → Build APK
 
 - [x] **Fase 1** — scaffolding, multi-squadra con tema dinamico, primo substrato (Home, Giocatori, Partita, Resoconti), persistenza, backup
 - [x] **Fase 2** — schermata partita: campo verticale in parquet con logo della squadra, card, panchina, timer con ±5 s, cambi con conferma, animazioni punteggio
-- [ ] **Fase 3** — motore INT con test automatici
+- [x] **Fase 3** — motore INT con test automatici e vista debug
 - [ ] **Fase 4** — resoconto finale, PDF, tab Resoconti completa

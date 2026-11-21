@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '@/db/db';
-import { settle, type LiveState } from '@/features/live/liveModel';
+import { normalizeLive, settle, type LiveState } from '@/features/live/liveModel';
 
 const KEY = 'live';
 
@@ -23,7 +23,8 @@ export const useLive = create<LiveStore>((set, get) => ({
   live: null,
   async load() {
     const rec = await db.kv.get(KEY);
-    const live = (rec?.value as LiveState | undefined) ?? null;
+    const raw = (rec?.value as LiveState | undefined) ?? null;
+    const live = raw ? normalizeLive(raw) : null;
     set({ live });
     return live;
   },

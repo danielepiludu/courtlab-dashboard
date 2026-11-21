@@ -16,10 +16,8 @@ import { useUI } from '@/store/ui';
 import { Court } from './Court';
 import { BenchCard, CourtCard, shortName } from './PlayerCards';
 import { CARD_H, CARD_W, SLOTS_M, computeView, type CourtView } from './courtGeometry';
-import { addScore, adjustClock, mmss, periodLabel, periodLength, periodOver, restMs, settle, substitute, toggleClock, undoScore, type LiveState } from './liveModel';
-
-/** INT: il motore arriva con la Fase 3. */
-const intOf = (_s: LiveState, _id: number) => 0;
+import { IntDebugSheet } from './IntDebugSheet';
+import { addScore, adjustClock, intNow, mmss, periodLabel, periodLength, periodOver, restMs, settle, substitute, toggleClock, undoScore } from './liveModel';
 const ADJUST_MS = 5000;
 
 /** Animazione dei cambi (FLIP con "fantasmi" sopra a tutto, così nulla viene tagliato dagli scroll). */
@@ -111,8 +109,8 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
         <span className="max-w-[90px] truncate text-[11px] font-bold uppercase tracking-wider text-ink-muted [@media(max-width:820px)]:hidden">{label}</span>
         <span className="relative inline-grid place-items-center">
           {/* onda luminosa dietro al numero */}
-          {flash > 0 && <span key={flash} className={cx('score-ring absolute inset-[-10px] rounded-full', accent ? 'bg-brand/50' : 'bg-white/30')} />}
-          <span key={score} className="score-roll relative font-display text-[34px] font-extrabold leading-none tabular [@media(min-height:600px)]:text-[44px]">
+          {flash > 0 && <span key={flash} className={cx('score-ring pointer-events-none absolute inset-[-10px] rounded-full', accent ? 'bg-brand/50' : 'bg-white/30')} />}
+          <span key={score} className="score-roll pointer-events-none relative font-display text-[34px] font-extrabold leading-none tabular [@media(min-height:600px)]:text-[44px]">
             {score}
           </span>
           {/* +N / −N che sale accanto al punteggio */}
@@ -137,7 +135,7 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
           ))}
         </span>
       </div>
-      <div className="flex gap-1">
+      <div className="relative z-10 flex gap-1">
         {([1, 2, 3] as const).map((n) => (
           <button
             key={n}
@@ -145,7 +143,7 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
               haptic.select();
               onAdd(n);
             }}
-            className="h-11 w-11 rounded-xl border border-white/10 bg-white/[.07] font-display text-[17px] font-bold transition active:scale-90 active:bg-white/20"
+            className="h-11 w-12 rounded-xl border border-white/10 bg-white/[.07] font-display text-[17px] font-bold transition active:scale-90 active:bg-white/20"
           >
             +{n}
           </button>
@@ -184,6 +182,8 @@ export function LiveScreen() {
   const [selBench, setSelBench] = useState<number[]>([]);
   const [menu, setMenu] = useState(false);
   const [isFs, setIsFs] = useState(() => !!document.fullscreenElement);
+  const [debug, setDebug] = useState(false);
+  const pressTimer = useRef<number | null>(null);
   const [courtRef, view] = useCourtView(!!live);
   useWakeLock(true);
   // Tasto Indietro: apre il menu invece di uscire dalla partita
@@ -200,6 +200,12 @@ export function LiveScreen() {
   const byId = useMemo(() => new Map((players ?? []).map((p) => [p.id!, p])), [players]);
   const roles = useMemo(() => Object.fromEntries((players ?? []).map((p) => [p.id!, p.role])) as Record<number, Role>, [players]);
   const calledPlayers = useMemo(() => (live ? (live.called.map((id) => byId.get(id)).filter(Boolean) as Player[]) : []), [live, byId]);
+
+  // Salvataggio periodico dello stato assestato (oltre a quello a ogni azione)
+  useEffect(() => {
+    const id = setInterval(() => update((s, t) => (s.started ? settle(s, t) : s)), 20_000);
+    return () => clearInterval(id);
+  }, [update]);
 
   // Fine periodo: il cronometro si ferma a 00:00 all'istante esatto di scadenza
   useEffect(() => {
@@ -287,10 +293,22 @@ export function LiveScreen() {
         className="flex h-[96px] shrink-0 items-center gap-3 border-b border-white/5 bg-bar px-3 shadow-[0_10px_30px_-18px_rgba(0,0,0,.9)] [@media(min-height:600px)]:h-[116px] [@media(min-height:600px)]:px-5"
         style={{ paddingLeft: 'max(12px, env(safe-area-inset-left))', paddingRight: 'max(12px, env(safe-area-inset-right))' }}
       >
-        {/* Periodo + cronometro + ±5 s + Start/Stop */}
+        {/* Periodo + cronometro + ±5 s + Start/Stop. Tenendo premuto il cronometro si apre la vista debug INT. */}
         <div className="flex items-center gap-2.5">
           <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2"
+              onPointerDown={() => {
+                pressTimer.current = window.setTimeout(() => {
+                  haptic.heavy();
+                  setDebug(true);
+                }, 900);
+              }}
+              onPointerUp={() => pressTimer.current && clearTimeout(pressTimer.current)}
+              onPointerLeave={() => pressTimer.current && clearTimeout(pressTimer.current)}
+              onPointerCancel={() => pressTimer.current && clearTimeout(pressTimer.current)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
               <span className={cx('rounded-full px-2 py-0.5 text-[13px] font-extrabold leading-tight tracking-wide', v.period >= 4 ? 'bg-warn/20 text-warn' : 'bg-white/10 text-ink')}>{periodLabel(v.period)}</span>
               <span
                 className={cx(
@@ -377,7 +395,7 @@ export function LiveScreen() {
                     playedMs={s.playedMs}
                     restMs={restMs(s, now)}
                     started={v.started}
-                    int={intOf(v, p.id!)}
+                    int={intNow(v, p.id!, now)}
                     selected={selBench.includes(p.id!)}
                     onTap={() => tap(p.id!, false)}
                   />
@@ -431,12 +449,14 @@ export function LiveScreen() {
                 className="absolute"
                 style={{ left: (x - CARD_W / 2 - view.x0) * view.s, top: (y - CARD_H / 2 - view.y0) * view.s, width: CARD_W * view.s, height: CARD_H * view.s }}
               >
-                <CourtCard p={p} name={shortName(p, calledPlayers)} playedMs={s.playedMs} int={intOf(v, id)} selected={selOn.includes(id)} onTap={() => tap(id, true)} />
+                <CourtCard p={p} name={shortName(p, calledPlayers)} playedMs={s.playedMs} int={intNow(v, id, now)} selected={selOn.includes(id)} onTap={() => tap(id, true)} />
               </div>
             );
           })}
         </section>
       </div>
+
+      <IntDebugSheet open={debug} onClose={() => setDebug(false)} v={v} now={now} players={calledPlayers} />
 
       {/* ---------- Menu ---------- */}
       <Sheet open={menu} onClose={() => setMenu(false)} title="Partita" subtitle={`${team?.name ?? ''} ${live.home ? 'vs' : '@'} ${live.opponent}`}>
