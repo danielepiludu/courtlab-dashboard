@@ -127,8 +127,8 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, trend
       <div className="relative shrink-0">
         <Photo p={p} className={cx('ring-2 shadow-[0_6px_16px_-6px_rgba(0,0,0,.9)]', selected ? 'ring-accent' : 'ring-white/20')} style={{ width: m(2.0), height: m(2.0), fontSize: m(0.72) }} />
         <span
-          className="absolute grid place-items-center rounded-full bg-brand font-score font-semibold leading-none text-on-brand shadow ring-2 ring-surface"
-          style={{ fontSize: `max(13px, ${m(0.56)})`, minWidth: m(0.82), height: m(0.82), padding: `${m(0.08)} ${m(0.1)} 0`, right: m(-0.26), bottom: m(-0.06) }}
+          className="absolute grid place-items-center rounded-full bg-brand font-display font-extrabold leading-none text-on-brand shadow ring-2 ring-surface"
+          style={{ fontSize: `max(11px, ${m(0.46)})`, minWidth: m(0.8), height: m(0.8), padding: `0 ${m(0.1)}`, right: m(-0.26), bottom: m(-0.06) }}
         >
           {p.number || '–'}
         </span>
@@ -139,7 +139,7 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, trend
       {/* Minuti giocati */}
       <div className="flex w-full shrink-0 items-center justify-center bg-black/55 text-white ring-1 ring-white/15" style={{ padding: `${m(0.09)} 0 ${m(0.02)}`, gap: m(0.1), borderRadius: m(0.2) }} title="Minuti giocati">
         <Clock3 strokeWidth={3} className="shrink-0 text-ink-muted" style={{ width: `max(11px, ${m(0.42)})`, height: `max(11px, ${m(0.42)})`, marginTop: m(-0.06) }} />
-        <Num value={mmss(playedMs)} className="font-semibold" style={{ fontSize: `max(16px, ${m(0.86)})` }} />
+        <Num value={mmss(playedMs)} style={{ fontSize: `max(15px, ${m(0.74)})` }} />
       </div>
       {/* INT: numero grande + barra dritta */}
       <div className="flex w-full shrink-0 items-end justify-between" style={{ marginTop: m(0.03) }} title={`INT ${fmtInt(v)} · ${intLevel(v)}`}>
@@ -147,7 +147,7 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, trend
           INT
           <TrendIcon trend={trend} size="1.3em" color={c} />
         </span>
-        <Num value={fmtInt(v)} className="font-semibold" style={{ fontSize: `max(18px, ${m(1.0)})`, color: c, textShadow: v > 0.3 ? `0 0 14px ${c}` : undefined }} />
+        <Num value={fmtInt(v)} style={{ fontSize: `max(17px, ${m(0.86)})`, color: c, textShadow: v > 0.3 ? `0 0 14px ${c}` : undefined }} />
       </div>
       <IntBar value={v} height={`max(5px, ${m(0.2)})`} style={{ flexShrink: 0 }} />
     </button>
@@ -158,7 +158,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: 'ink
   return (
     <div className="min-w-0 flex-1 rounded-lg bg-black/40 px-1.5 pb-0.5 pt-1 ring-1 ring-white/10">
       <div className="truncate text-[9px] font-bold uppercase leading-none text-ink-muted">{label}</div>
-      <Num value={value} className={cx('mt-1 text-[24px] font-semibold', tone === 'accent' ? 'text-accent-light' : tone === 'faint' ? 'text-ink-faint' : 'text-white')} />
+      <Num value={value} className={cx('mt-0.5 text-[20px]', tone === 'accent' ? 'text-accent-light' : tone === 'faint' ? 'text-ink-faint' : 'text-white')} />
     </div>
   );
 }
@@ -180,7 +180,7 @@ export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, trend
       <div className="flex min-w-0 items-center gap-2">
         <div className="relative shrink-0">
           <Photo p={p} className={cx('h-12 w-12 text-base ring-2', selected ? 'ring-accent' : 'ring-white/15')} />
-          <span className="absolute -bottom-1 -right-1.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand px-1 pt-0.5 font-score text-[16px] font-semibold leading-none text-on-brand ring-2 ring-surface">
+          <span className="absolute -bottom-1 -right-1.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[13px] font-extrabold leading-none text-on-brand ring-2 ring-surface">
             {p.number || '–'}
           </span>
         </div>
@@ -199,7 +199,7 @@ export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, trend
         <span className="flex items-center gap-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-muted">
           INT <TrendIcon trend={trend} size={13} color={c} />
         </span>
-        <Num value={fmtInt(v)} className="text-[30px] font-semibold" style={{ color: c, textShadow: v > 0.3 ? `0 0 12px ${c}` : undefined }} />
+        <Num value={fmtInt(v)} className="text-[26px]" style={{ color: c, textShadow: v > 0.3 ? `0 0 12px ${c}` : undefined }} />
       </div>
       <IntBar value={v} height={7} />
     </button>

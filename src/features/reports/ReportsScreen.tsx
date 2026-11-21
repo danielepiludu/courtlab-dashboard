@@ -1,34 +1,48 @@
-import { useState } from 'react';
-import { ClipboardList, FileText, MapPin, Plane } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { BarChart3, ChevronRight, ClipboardList, MapPin, Plane } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { Sheet } from '@/components/ui/Sheet';
 import { EmptyState } from '@/components/ui/misc';
+import { Num } from '@/components/ui/Num';
+import { db } from '@/db/db';
 import { useActiveTeam, useGames } from '@/db/hooks';
 import { OUTCOME_LABEL, outcomeOf, type Game } from '@/db/types';
-import { fmtLong, fmtMedium } from '@/lib/dates';
+import { fmtMedium } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
+import { useUI } from '@/store/ui';
 import { OutcomePill } from '../home/GameRow';
 
-function ReportRow({ g, onClick }: { g: Game; onClick: () => void }) {
+function ReportRow({ g, hasData, onClick }: { g: Game; hasData: boolean; onClick: () => void }) {
   const o = outcomeOf(g);
   return (
     <button onClick={onClick} className="card pressable relative flex w-full items-center gap-3 overflow-hidden p-3.5 pl-5 text-left">
       <span className={cx('absolute inset-y-0 left-0 w-1.5', o === 'W' ? 'bg-ok' : o === 'L' ? 'bg-brand' : 'bg-ink-faint')} />
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-semibold uppercase tracking-wider text-ink-muted">{fmtMedium(g.date)}</div>
+        <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-ink-muted">
+          {fmtMedium(g.date)}
+          {g.home ? <MapPin size={12} /> : <Plane size={12} />}
+        </div>
         <div className="mt-0.5 truncate text-[18px] font-bold">
           <span className="mr-1 text-ink-muted">{g.home ? 'vs' : '@'}</span>
           {g.opponent}
         </div>
-        <div className={cx('text-[13px] font-semibold', o === 'W' ? 'text-ok' : o === 'L' ? 'text-brand-text' : 'text-ink-muted')}>{OUTCOME_LABEL[o]}</div>
+        <div className="mt-0.5 flex items-center gap-2 text-[13px] font-semibold">
+          <span className={o === 'W' ? 'text-ok' : o === 'L' ? 'text-brand-text' : 'text-ink-muted'}>{OUTCOME_LABEL[o]}</span>
+          {hasData && (
+            <span className="flex items-center gap-1 rounded-full bg-accent/15 px-2 text-[11px] text-accent-light">
+              <BarChart3 size={12} /> Minuti e INT
+            </span>
+          )}
+        </div>
       </div>
-      <div className="font-display text-[32px] font-extrabold leading-none tabular">
-        {g.scoreUs ?? 0}
-        <span className="mx-1 text-ink-faint">–</span>
-        {g.scoreThem ?? 0}
+      <div className="flex items-baseline gap-1">
+        {/* sempre "noi – loro" */}
+        <Num value={g.scoreUs ?? 0} className="text-[30px]" />
+        <span className="text-ink-faint">–</span>
+        <Num value={g.scoreThem ?? 0} className="text-[30px] text-ink-muted" />
       </div>
       <OutcomePill game={g} />
+      <ChevronRight size={18} className="-ml-1 text-ink-faint" />
     </button>
   );
 }
@@ -36,38 +50,43 @@ function ReportRow({ g, onClick }: { g: Game; onClick: () => void }) {
 export function ReportsScreen() {
   const games = useGames();
   const team = useActiveTeam();
-  const [open, setOpen] = useState<Game | null>(null);
+  const openReport = useUI((s) => s.openReport);
   const finished = (games ?? []).filter((g) => g.status === 'finished').reverse();
+  const withData = useLiveQuery(async () => new Set((await db.reports.where('teamId').equals(team?.id ?? -1).primaryKeys()) as number[]), [team?.id]) ?? new Set<number>();
   const w = finished.filter((g) => outcomeOf(g) === 'W').length;
   const l = finished.filter((g) => outcomeOf(g) === 'L').length;
   const avg = (k: 'scoreUs' | 'scoreThem') => (finished.length ? Math.round(finished.reduce((s, g) => s + (g[k] ?? 0), 0) / finished.length) : 0);
 
   return (
     <>
-      <ScreenHeader title="Resoconti" subtitle={finished.length ? `${team?.name ?? ''} · ${w}V ${l}P` : team ? `${team.name} · ${team.season}` : 'Storico delle partite concluse'} />
+      <ScreenHeader title="Resoconti" subtitle={team ? `${team.name} · ${team.season}` : 'Storico delle partite concluse'} />
       <div className="mx-auto max-w-2xl px-4 pt-4">
         {games === undefined ? null : finished.length === 0 ? (
-          <EmptyState icon={<ClipboardList size={30} />} title="Nessun resoconto" text="Al termine di ogni partita il resoconto completo verrà salvato qui." />
+          <EmptyState icon={<ClipboardList size={30} />} title="Nessun resoconto" text="Al termine di ogni partita il resoconto completo (minuti, INT, grafici, PDF) viene salvato qui." />
         ) : (
           <>
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              <div className="card p-3 text-center">
-                <div className="font-display text-3xl font-bold leading-none text-ink">{avg('scoreUs')}</div>
-                <div className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-ink-muted">Punti fatti / gara</div>
-              </div>
-              <div className="card p-3 text-center">
-                <div className="font-display text-3xl font-bold leading-none text-ink-muted">{avg('scoreThem')}</div>
-                <div className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-ink-muted">Punti subiti / gara</div>
-              </div>
+            <div className="mb-4 grid grid-cols-4 gap-2">
+              {[
+                { l: 'Partite', v: finished.length, c: 'text-ink' },
+                { l: 'Vinte', v: w, c: 'text-ok' },
+                { l: 'Perse', v: l, c: 'text-brand-text' },
+                { l: 'Media', v: `${avg('scoreUs')}-${avg('scoreThem')}`, c: 'text-ink' },
+              ].map((x) => (
+                <div key={x.l} className="card px-1 py-2.5 text-center">
+                  <Num value={x.v} className={cx('text-[24px]', x.c)} />
+                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">{x.l}</div>
+                </div>
+              ))}
             </div>
             <div className="stagger space-y-2">
               {finished.map((g) => (
                 <ReportRow
                   key={g.id}
                   g={g}
+                  hasData={withData.has(g.id!)}
                   onClick={() => {
                     haptic.tap();
-                    setOpen(g);
+                    openReport(g.id!);
                   }}
                 />
               ))}
@@ -76,32 +95,6 @@ export function ReportsScreen() {
         )}
         <div className="h-6" />
       </div>
-
-      {/* FASE 1: anteprima. Il resoconto completo (tabella, grafici INT, PDF) arriva nella Fase 4. */}
-      <Sheet open={!!open} onClose={() => setOpen(null)} title={open ? `${open.home ? 'vs' : '@'} ${open.opponent}` : ''} subtitle={open ? fmtLong(open.date) : undefined}>
-        {open && (
-          <>
-            <div className="flex items-center justify-center gap-6 rounded-2xl bg-bar p-5">
-              <div className="text-center">
-                <div className="max-w-[140px] truncate text-[12px] font-bold uppercase tracking-widest text-ink-muted">{team?.name}</div>
-                <div className="font-display text-6xl font-extrabold tabular">{open.scoreUs ?? 0}</div>
-              </div>
-              <span className="font-display text-3xl text-ink-faint">–</span>
-              <div className="text-center">
-                <div className="max-w-[140px] truncate text-[12px] font-bold uppercase tracking-widest text-ink-muted">{open.opponent}</div>
-                <div className="font-display text-6xl font-extrabold tabular text-ink-muted">{open.scoreThem ?? 0}</div>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-ink-muted">
-              {open.home ? <MapPin size={14} /> : <Plane size={14} />} {open.home ? 'Casa' : 'Trasferta'} · ore {open.time}
-            </div>
-            <div className="mt-5 flex items-start gap-3 rounded-2xl border border-dashed border-line p-4 text-[14px] text-ink-muted">
-              <FileText size={20} className="mt-0.5 shrink-0 text-accent-light" />
-              Il resoconto dettagliato (minuti, INT medio e di picco, ingressi, grafici ed export PDF) sarà disponibile dalla Fase 4.
-            </div>
-          </>
-        )}
-      </Sheet>
     </>
   );
 }

@@ -4,7 +4,7 @@
  */
 export const APP = {
   name: 'Basket Monitor',
-  version: '1.1.0',
+  version: '1.4.0',
 } as const;
 
 /** Squadra presente al primo avvio */
