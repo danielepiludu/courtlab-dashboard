@@ -1,19 +1,18 @@
 /**
- * Geometria del mezzo campo FIBA (metri), orizzontale con canestro a destra.
- * Il campo visibile include tutto il cerchio di centrocampo (con il logo della squadra).
+ * Geometria del mezzo campo FIBA (metri), VERTICALE con canestro in alto.
+ * X = larghezza (0 linea laterale sinistra … 15 destra), Y = profondità (0 linea di fondo … 14 metà campo).
+ * Il parquet continua oltre le linee (bordo campo) per riempire lo spazio disponibile:
+ * lì, se c'è spazio, compare il logo della squadra; altrimenti è visibile il cerchio di centrocampo col logo.
  */
 export const COURT = {
-  /** bordo sinistro della vista (oltre la linea di metà campo, per mostrare tutto il cerchio centrale) */
-  x0: -2.4,
-  x1: 14.2,
-  y0: -0.2,
-  y1: 15.2,
-  length: 14, // metà campo
   width: 15,
-  basketX: 14 - 1.575,
-  basketY: 7.5,
+  half: 14, // linea di metà campo
+  basketX: 7.5,
+  basketY: 1.575,
+  rimR: 0.23,
+  backboardY: 1.2,
   threeR: 6.75,
-  cornerY: 0.9, // distanza delle linee da 3 dai lati
+  cornerX: 0.9, // distanza delle linee da 3 dai lati
   paintDepth: 5.8,
   paintWidth: 4.9,
   ftR: 1.8,
@@ -21,25 +20,53 @@ export const COURT = {
   restrictedR: 1.25,
 } as const;
 
-export const VIEW_W = COURT.x1 - COURT.x0;
-export const VIEW_H = COURT.y1 - COURT.y0;
-export const ASPECT = VIEW_W / VIEW_H;
+/** Area minima sempre visibile (con margine attorno alle linee). */
+export const CORE = { x0: -0.3, x1: 15.3, y0: -0.3, y1: 13.6, y1WithCenter: 16.3 } as const;
 
-/** Dimensioni della card giocatore in campo, in frazione della vista. */
-export const CARD_W = 0.245;
-export const CARD_H = 0.3;
+/** Card giocatore in campo (metri). */
+export const CARD_W = 3.9;
+export const CARD_H = 4.6;
 
 /**
- * Posizioni (centro card, in metri): 0 punta, 1 ala alta, 2 ala bassa (fuori dall'arco, non negli angoli),
- * 3 lungo alto e 4 lungo basso (dentro il pitturato).
+ * Posizioni (centro card, metri): 0 punta, 1 ala sinistra, 2 ala destra (fuori dall'arco, non negli angoli),
+ * 3-4 lunghi dentro il pitturato, sotto al ferro così il canestro resta visibile.
  */
 export const SLOTS_M: [number, number][] = [
-  [3.9, 7.5],
-  [6.4, 2.45],
-  [6.4, 12.55],
-  [10.6, 5.15],
-  [12.15, 9.9],
+  [7.5, 10.3],
+  [2.25, 8.9],
+  [12.75, 8.9],
+  [5.3, 4.2],
+  [9.7, 4.2],
 ];
 
-/** Posizioni in percentuale della vista (per il posizionamento CSS). */
-export const SLOTS_PCT = SLOTS_M.map(([x, y]) => [((x - COURT.x0) / VIEW_W) * 100, ((y - COURT.y0) / VIEW_H) * 100] as [number, number]);
+export interface CourtView {
+  /** pixel per metro */
+  s: number;
+  x0: number;
+  y0: number;
+  w: number;
+  h: number;
+  /** larghezza del bordo campo ai lati (metri) */
+  apron: number;
+  showApronLogos: boolean;
+}
+
+const APRON_LOGO_MIN = 2.6;
+
+/**
+ * Vista per un contenitore di W×H pixel: il campo occupa tutta l'altezza disponibile,
+ * il parquet riempie i lati. Se ai lati non c'è spazio per il logo, si mostra anche il cerchio di centrocampo.
+ */
+export function computeView(W: number, H: number): CourtView {
+  const coreW = CORE.x1 - CORE.x0;
+  const make = (depth: number): CourtView => {
+    const s = Math.max(1, Math.min(W / coreW, H / depth));
+    const w = W / s;
+    const h = H / s;
+    const apron = (w - coreW) / 2;
+    return { s, x0: COURT.width / 2 - w / 2, y0: CORE.y0, w, h, apron, showApronLogos: apron >= APRON_LOGO_MIN };
+  };
+  const short = make(CORE.y1 - CORE.y0);
+  if (short.showApronLogos) return short;
+  return make(CORE.y1WithCenter - CORE.y0);
+}

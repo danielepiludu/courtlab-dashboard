@@ -24,17 +24,17 @@ export function intColor(v: number): string {
   return 'rgb(229,56,59)';
 }
 
-export function IntBar({ value, compact, style }: { value: number; compact?: boolean; style?: CSSProperties }) {
+export function IntBar({ value, style }: { value: number; style?: CSSProperties }) {
   const v = Math.round(Math.min(100, Math.max(0, value)));
   return (
     <div className="w-full" style={style}>
-      <div className={cx('flex items-baseline justify-between font-bold leading-none', compact ? 'mb-[0.4cqw] text-[max(9px,1.6cqw)]' : 'mb-1 text-[11px]')}>
+      <div className="mb-1 flex items-baseline justify-between text-[11px] font-bold leading-none">
         <span className="tracking-widest text-ink-muted">INT</span>
         <span className="tabular" style={{ color: intColor(v) }}>
           {v}
         </span>
       </div>
-      <div className={cx('overflow-hidden rounded-full bg-white/10', compact ? 'h-[max(4px,0.8cqw)]' : 'h-1.5')}>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
         <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${v}%`, background: intColor(v) }} />
       </div>
     </div>
@@ -71,7 +71,9 @@ interface CardProps {
   onTap: () => void;
 }
 
-/** Card in campo: dimensioni in cqw (relative alla larghezza del campo), la foto è l'elemento principale. */
+const m = (k: number) => `calc(var(--m) * ${k})`;
+
+/** Card in campo: dimensioni in metri di campo (--m = pixel per metro), la foto è l'elemento principale. */
 export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selected, onTap }: CardProps) {
   return (
     <button
@@ -79,63 +81,68 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selec
       onClick={onTap}
       aria-pressed={selected}
       className={cx(
-        'flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-[1.8cqw] border bg-surface/90 px-[1.1cqw] pb-[1cqw] pt-[1cqw] shadow-[0_8px_22px_-8px_rgba(0,0,0,.85)] backdrop-blur-[2px] transition-[box-shadow,border-color,transform] duration-200 active:scale-[.96]',
+        'flex h-full w-full flex-col items-center justify-between overflow-hidden border bg-surface/90 shadow-[0_8px_22px_-8px_rgba(0,0,0,.85)] backdrop-blur-[2px] transition-[box-shadow,border-color,transform] duration-200 active:scale-[.96]',
         selected ? 'border-accent shadow-glow' : 'border-white/10',
       )}
+      style={{ borderRadius: m(0.38), padding: `${m(0.18)} ${m(0.2)} ${m(0.2)}` }}
     >
       <div className="relative">
-        <Photo p={p} className={cx('ring-[0.35cqw]', selected ? 'ring-accent' : 'ring-white/15')} style={{ width: '14cqw', height: '14cqw', fontSize: '5cqw' }} />
-        <span className="absolute -bottom-[0.6cqw] -right-[1cqw] grid min-w-[4.6cqw] place-items-center rounded-full bg-brand px-[0.6cqw] font-display font-extrabold leading-[1.35] text-on-brand shadow" style={{ fontSize: 'max(11px, 2.5cqw)' }}>
+        <Photo p={p} className={cx('ring-2', selected ? 'ring-accent' : 'ring-white/15')} style={{ width: m(2.25), height: m(2.25), fontSize: m(0.8) }} />
+        <span
+          className="absolute grid place-items-center rounded-full bg-brand font-display font-extrabold leading-[1.35] text-on-brand shadow"
+          style={{ fontSize: `max(11px, ${m(0.46)})`, minWidth: m(0.8), padding: `0 ${m(0.1)}`, right: m(-0.18), bottom: m(-0.08) }}
+        >
           {p.number || '–'}
         </span>
       </div>
-      <b className="w-full truncate text-center leading-[1.15]" style={{ fontSize: 'max(10.5px, 2.3cqw)' }}>
+      <b className="w-full truncate text-center leading-[1.15]" style={{ fontSize: `max(10.5px, ${m(0.42)})` }}>
         {name}
       </b>
-      <div className="flex w-full items-baseline justify-between px-[0.4cqw] leading-none">
-        <span className="font-display font-bold tabular" style={{ fontSize: 'max(12.5px, 3.1cqw)' }}>
+      <div className="flex w-full items-baseline justify-between leading-none" style={{ padding: `0 ${m(0.06)}` }}>
+        <span className="font-display font-bold tabular" style={{ fontSize: `max(12.5px, ${m(0.56)})` }}>
           {mmss(playedMs)}
         </span>
-        <span className="font-display font-bold tabular" style={{ fontSize: 'max(11px, 2.4cqw)', color: intColor(int) }} title="INT">
+        <span className="font-display font-bold tabular" style={{ fontSize: `max(11px, ${m(0.44)})`, color: intColor(int) }} title="INT">
           {Math.round(int)}
         </span>
       </div>
-      <div className="h-[max(4px,0.8cqw)] w-full overflow-hidden rounded-full bg-white/10">
+      <div className="w-full overflow-hidden rounded-full bg-white/10" style={{ height: `max(4px, ${m(0.14)})` }}>
         <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${Math.min(100, Math.max(0, int))}%`, background: intColor(int) }} />
       </div>
     </button>
   );
 });
 
-/** Card nella colonna REST: mostra anche il tempo reale di riposo. */
-export const RestCard = memo(function RestCard({ p, name, playedMs, int, selected, onTap, restMs, started }: CardProps & { restMs: number; started: boolean }) {
+/** Scheda in panchina (griglia a 2 colonne): mostra anche il tempo reale di riposo. */
+export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, selected, onTap, restMs, started }: CardProps & { restMs: number; started: boolean }) {
   return (
     <button
       data-flip={p.id}
       onClick={onTap}
       aria-pressed={selected}
       className={cx(
-        'flex w-full items-center gap-3 rounded-2xl border bg-surface p-2.5 text-left transition-[box-shadow,border-color,transform] duration-200 active:scale-[.97]',
+        'flex w-full min-w-0 flex-col gap-1.5 rounded-2xl border bg-surface p-2 text-left transition-[box-shadow,border-color,transform] duration-200 active:scale-[.96]',
         selected ? 'border-accent bg-accent/10 shadow-glow' : 'border-line',
       )}
     >
-      <div className="relative">
-        <Photo p={p} className={cx('h-14 w-14 text-xl ring-2 [@media(min-height:600px)]:h-16 [@media(min-height:600px)]:w-16', selected ? 'ring-accent' : 'ring-white/10')} />
-        <span className="absolute -bottom-1 -right-1.5 grid min-w-[24px] place-items-center rounded-full bg-brand px-1 font-display text-[13px] font-extrabold leading-[1.4] text-on-brand">{p.number || '–'}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <b className="block truncate text-[15px] leading-tight">{name}</b>
-        <div className="mt-1 flex items-center justify-between gap-2 text-[12px] font-semibold text-ink-muted">
-          <span>
-            MIN <b className="font-display text-[15px] text-ink tabular">{mmss(playedMs)}</b>
-          </span>
-          <span className={cx('flex items-center gap-1', started ? 'text-accent-light' : 'text-ink-faint')} title="Tempo reale di riposo">
-            <Timer size={13} />
-            <b className="font-display text-[15px] tabular">{mmss(restMs)}</b>
-          </span>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="relative shrink-0">
+          <Photo p={p} className={cx('h-11 w-11 text-base ring-2 [@media(min-height:600px)]:h-14 [@media(min-height:600px)]:w-14', selected ? 'ring-accent' : 'ring-white/10')} />
+          <span className="absolute -bottom-1 -right-1.5 grid min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[12px] font-extrabold leading-[1.4] text-on-brand">{p.number || '–'}</span>
         </div>
-        <IntBar value={int} style={{ marginTop: 5 }} />
+        <div className="min-w-0 flex-1">
+          <b className="block truncate text-[14px] leading-tight">{name}</b>
+          <div className="font-display text-[15px] font-bold leading-tight tabular">
+            <span className="mr-1 font-sans text-[10px] font-bold tracking-wider text-ink-muted">MIN</span>
+            {mmss(playedMs)}
+          </div>
+          <div className={cx('flex items-center gap-1 font-display text-[14px] font-bold leading-tight tabular', started ? 'text-accent-light' : 'text-ink-faint')} title="Tempo reale in panchina">
+            <Timer size={12} strokeWidth={2.5} />
+            {mmss(restMs)}
+          </div>
+        </div>
       </div>
+      <IntBar value={int} />
     </button>
   );
 });

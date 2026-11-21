@@ -33,7 +33,8 @@ export type LiveEvent =
   | { t: number; type: 'stop' }
   | { t: number; type: 'period_start'; period: number }
   | { t: number; type: 'period_end'; period: number }
-  | { t: number; type: 'sub'; out: number[]; in: number[] };
+  | { t: number; type: 'sub'; out: number[]; in: number[] }
+  | { t: number; type: 'adjust'; deltaMs: number };
 
 export interface LiveState {
   v: 1;
@@ -176,6 +177,30 @@ export function substitute(s0: LiveState, outs: number[], ins: number[], roles: 
     players[inId] = { ...players[inId], onCourt: true, stintMs: 0, entries: players[inId].entries + 1, restSince: null };
   });
   return { ...s, slots, players, events: [...s.events, { t: now, type: 'sub', out: o, in: i }] };
+}
+
+/**
+ * Correzione manuale del cronometro di ±`deltaMs` di gioco (es. ±5 s):
+ * deltaMs > 0 manda avanti il tempo (il cronometro scende), deltaMs < 0 lo riporta indietro.
+ * Di conseguenza si aggiornano i minuti dei giocatori in campo e i tempi in panchina.
+ * Limiti: il cronometro resta tra 00:00 e la durata del periodo; nessun tempo diventa negativo.
+ */
+export function adjustClock(s0: LiveState, deltaMs: number, now: number): LiveState {
+  if (!s0.started || deltaMs === 0) return s0;
+  const s = settle(s0, now);
+  const len = periodLength(s.period);
+  const d = deltaMs > 0 ? Math.min(deltaMs, s.remainingMs) : -Math.min(-deltaMs, len - s.remainingMs);
+  if (d === 0) return s;
+  const players: Record<number, PlayerLive> = {};
+  for (const [k, p] of Object.entries(s.players)) {
+    if (p.onCourt) players[+k] = { ...p, playedMs: Math.max(0, p.playedMs + d), stintMs: Math.max(0, p.stintMs + d) };
+    else players[+k] = p.restSince != null ? { ...p, restSince: Math.min(now, p.restSince - d) } : p;
+  }
+  const remainingMs = s.remainingMs - d;
+  const ended = s.running && remainingMs <= 0;
+  const events: LiveEvent[] = [...s.events, { t: now, type: 'adjust', deltaMs: d }];
+  if (ended) events.push({ t: now, type: 'period_end', period: s.period });
+  return { ...s, players, remainingMs, running: s.running && !ended, events };
 }
 
 export function addScore(s: LiveState, side: 'us' | 'them', pts: 1 | 2 | 3, now: number): LiveState {

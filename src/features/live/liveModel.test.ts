@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Role } from '@/db/types';
-import { addScore, createLive, mmss, periodOver, restMs, settle, substitute, toggleClock, undoScore, type LiveState } from './liveModel';
+import { addScore, adjustClock, createLive, mmss, periodOver, restMs, settle, substitute, toggleClock, undoScore, type LiveState } from './liveModel';
 
 const MIN = 60_000;
 const roles: Record<number, Role> = { 1: 'PG', 2: 'SG', 3: 'SF', 4: 'PF', 5: 'C', 6: 'PG', 7: 'C', 8: 'SF' };
@@ -94,5 +94,53 @@ describe('punteggio', () => {
     expect([s.us, s.them]).toEqual([3, 2]);
     s = undoScore(s);
     expect([s.us, s.them]).toEqual([3, 0]);
+  });
+});
+
+describe('correzione ±5 secondi', () => {
+  const SEC = 1000;
+  it('avanti di 5 s: cronometro -5 s, +5 s ai giocatori in campo e alla panchina', () => {
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + MIN); // stop a 09:00
+    const before = settle(s, T0 + 2 * MIN);
+    const a = adjustClock(s, 5 * SEC, T0 + 2 * MIN);
+    expect(a.remainingMs).toBe(9 * MIN - 5 * SEC);
+    expect(a.players[1].playedMs).toBe(MIN + 5 * SEC);
+    expect(a.players[1].stintMs).toBe(MIN + 5 * SEC);
+    expect(restMs(a.players[6], T0 + 2 * MIN)).toBe(restMs(before.players[6], T0 + 2 * MIN) + 5 * SEC);
+  });
+  it('indietro di 5 s: tutto torna indietro di 5 s, anche a cronometro in corso', () => {
+    let s = toggleClock(make(), T0);
+    s = adjustClock(s, -5 * SEC, T0 + 30 * SEC);
+    expect(s.running).toBe(true);
+    const v = settle(s, T0 + 40 * SEC);
+    expect(v.remainingMs).toBe(10 * MIN - 35 * SEC);
+    expect(v.players[2].playedMs).toBe(35 * SEC);
+    expect(restMs(v.players[7], T0 + 40 * SEC)).toBe(35 * SEC);
+  });
+  it('limiti: non supera la durata del periodo né scende sotto 00:00; niente tempi negativi', () => {
+    let s = toggleClock(make(), T0);
+    s = adjustClock(s, -5 * SEC, T0 + 2 * SEC); // solo 2 s recuperabili
+    expect(settle(s, T0 + 2 * SEC).remainingMs).toBe(10 * MIN);
+    expect(s.players[1].playedMs).toBe(0);
+    expect(restMs(s.players[6], T0 + 2 * SEC)).toBe(0);
+    s = settle(toggleClock(make(), T0), T0 + 10 * MIN - 3 * SEC);
+    s = adjustClock(s, 5 * SEC, T0 + 10 * MIN - 3 * SEC);
+    expect(s.remainingMs).toBe(0);
+    expect(s.running).toBe(false);
+    expect(s.players[1].playedMs).toBe(10 * MIN);
+  });
+  it('a periodo finito, indietro di 5 s riapre il periodo (Start riparte dallo stesso)', () => {
+    let s = settle(toggleClock(make(), T0), T0 + 11 * MIN);
+    s = adjustClock(s, -5 * SEC, T0 + 11 * MIN);
+    expect(s.remainingMs).toBe(5 * SEC);
+    expect(periodOver(s)).toBe(false);
+    s = toggleClock(s, T0 + 12 * MIN);
+    expect(s.period).toBe(0);
+    expect(s.running).toBe(true);
+  });
+  it('non disponibile prima del primo Start', () => {
+    const s = make();
+    expect(adjustClock(s, 5 * SEC, T0)).toBe(s);
   });
 });
