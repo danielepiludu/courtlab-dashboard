@@ -22,7 +22,7 @@ export default function Players() {
       {list.length === 0 ? <Empty t="Nessun giocatore" s="Aggiungi i giocatori della squadra." /> : list.map((p) => (
         <button key={p.id} onClick={() => setEd(p)} className="mb-2 flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left transition active:scale-[.98]">
           <Avatar p={p} /><div className="min-w-0 flex-1"><b className="block truncate text-lg">#{p.number} {p.name}</b>
-            <span className="text-sm text-white/50">{p.role} · Min tot — · Intensità —</span></div><Badge s={p.status} />
+            <span className="text-sm text-ink/50">{p.role} · Min tot — · Intensità —</span></div><Badge s={p.status} />
         </button>))}
       <Sheet open={!!ed} onClose={() => setEd(null)} title={ed?.id ? 'Scheda giocatore' : 'Nuovo giocatore'}>
         {ed && <>
@@ -42,7 +42,7 @@ export default function Players() {
           </div>}
           <Field label="Note"><textarea className={inp + ' h-24 py-2'} value={ed.notes} onChange={(e) => up({ notes: e.target.value })} /></Field>
           <div className="mt-2 flex gap-2">
-            {ed.id && <button className={btn + ' text-red-400'} onClick={async () => { if (confirm('Eliminare il giocatore?')) { await delPlayer(ed.id!); setEd(null); } }}>Elimina</button>}
+            {ed.id && <button className={btn + ' text-red-700'} onClick={async () => { if (confirm('Eliminare il giocatore?')) { await delPlayer(ed.id!); setEd(null); } }}>Elimina</button>}
             <button className={btnPri + ' flex-1'} disabled={!ed.name.trim()} onClick={async () => { await savePlayer(ed); vib(20); setEd(null); }}>Salva</button>
           </div>
         </>}

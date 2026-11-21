@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useStore } from './store';
 import { iso } from './db';
+import { newLive } from './live';
 import { Avatar, Badge, Empty, inp, btnPri, btn, vib } from './ui';
 export default function Match() {
-  const { players, games, match, setMatch, saveGame } = useStore();
+  const { players, games, match, setMatch, saveGame, setLive } = useStore();
   const [opp, setOpp] = useState(''), [toast, setToast] = useState('');
   const upcoming = games.filter((g) => !g.finished);
   const { gameId, conv, start } = match;
@@ -19,38 +20,38 @@ export default function Match() {
   return (
     <div className="p-4">
       <h1 className="mb-4 text-3xl font-extrabold">Partita</h1>
-      <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-white/50">1 · Scegli la partita</h2>
+      <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-ink/50">1 · Scegli la partita</h2>
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         {upcoming.map((g) => (
           <button key={g.id} onClick={() => { vib(8); setMatch({ gameId: g.id! }); }}
-            className={`shrink-0 rounded-2xl px-4 py-3 text-left transition active:scale-95 ${gameId === g.id ? 'bg-lime text-bg' : 'bg-card'}`}>
+            className={`shrink-0 rounded-2xl px-4 py-3 text-left transition active:scale-95 ${gameId === g.id ? 'bg-wine text-bg' : 'bg-card'}`}>
             <b>vs {g.opponent || 'Avversario'}</b><div className="text-xs opacity-70">{g.date.slice(8)}/{g.date.slice(5, 7)} · {g.time}</div></button>))}
       </div>
       <div className="mb-5 flex gap-2">
         <input className={inp} placeholder="Partita al volo: avversario" value={opp} onChange={(e) => setOpp(e.target.value)} />
         <button className={btn} disabled={!opp.trim()} onClick={async () => { const id = await saveGame({ date: iso(new Date()), time: new Date().toTimeString().slice(0, 5), opponent: opp.trim(), home: true, notes: '', finished: false }); setMatch({ gameId: id }); setOpp(''); vib(20); }}>Crea</button>
       </div>
-      <div className="mb-2 flex items-end justify-between"><h2 className="text-sm font-bold uppercase tracking-wider text-white/50">2 · Convocati e quintetto</h2>
-        <span className="text-sm font-bold"><span className="text-lime">{conv.length}</span> convocati · <span className="text-ball">{start.length}/5</span> titolari</span></div>
+      <div className="mb-2 flex items-end justify-between"><h2 className="text-sm font-bold uppercase tracking-wider text-ink/50">2 · Convocati e quintetto</h2>
+        <span className="text-sm font-bold"><span className="text-wine">{conv.length}</span> convocati · <span className="text-gold">{start.length}/5</span> titolari</span></div>
       {players.length === 0 ? <Empty t="Nessun giocatore" s="Aggiungili dalla tab Giocatori." /> : (
         <div className="grid grid-cols-2 gap-2">
           {players.map((p) => {
             const id = p.id!, inj = p.status === 'inj', on = conv.includes(id), st = start.includes(id);
             return (
-              <div key={id} className={`rounded-2xl border-2 p-3 transition ${on ? 'border-lime bg-lime/10' : 'border-transparent bg-card'} ${inj ? 'opacity-50' : ''}`}>
+              <div key={id} className={`rounded-2xl border-2 p-3 transition ${on ? 'border-wine bg-wine/10' : 'border-transparent bg-card'} ${inj ? 'opacity-50' : ''}`}>
                 <button disabled={inj} onClick={() => toggleConv(id)} className="flex w-full items-center gap-2 text-left active:scale-95">
-                  <Avatar p={p} size={44} /><div className="min-w-0 flex-1"><b className="block truncate">#{p.number} {p.name}</b><span className="text-xs text-white/50">{p.role}</span></div>
-                  <span className={`grid h-7 w-7 place-items-center rounded-md border-2 ${on ? 'anim-pop border-lime bg-lime text-bg' : 'border-white/30'}`}>{on && '✓'}</span>
+                  <Avatar p={p} size={44} /><div className="min-w-0 flex-1"><b className="block truncate">#{p.number} {p.name}</b><span className="text-xs text-ink/50">{p.role}</span></div>
+                  <span className={`grid h-7 w-7 place-items-center rounded-md border-2 ${on ? 'anim-pop border-wine bg-wine text-bg' : 'border-ink/30'}`}>{on && '✓'}</span>
                 </button>
                 <div className="mt-2 flex items-center justify-between">{p.status !== 'ok' ? <Badge s={p.status} /> : <span />}
-                  {on && <button onClick={() => toggleStart(id)} className={`h-9 rounded-full px-3 text-xs font-bold transition active:scale-90 ${st ? 'anim-pop bg-ball text-bg' : 'bg-white/10'}`}>{st ? '★ Titolare' : '☆ Titolare'}</button>}</div>
+                  {on && <button onClick={() => toggleStart(id)} className={`h-9 rounded-full px-3 text-xs font-bold transition active:scale-90 ${st ? 'anim-pop bg-gold text-bg' : 'bg-ink/10'}`}>{st ? '★ Titolare' : '☆ Titolare'}</button>}</div>
               </div>);
           })}
         </div>)}
       <div className="fixed inset-x-0 bottom-24 z-30 mx-auto flex max-w-3xl flex-col items-center gap-2 px-4 pb-[env(safe-area-inset-bottom)]">
-        {toast && <div className="anim-pop rounded-full bg-black/80 px-4 py-2 text-sm font-semibold">{toast}</div>}
-        <button className={btnPri + ' h-14 w-full text-lg shadow-lg shadow-lime/20'} disabled={!ok}
-          onClick={() => { vib(30); flash('La schermata partita arriva nella Fase 2'); }}>▶ Inizia partita</button>
+        {toast && <div className="anim-pop rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg">{toast}</div>}
+        <button className={btnPri + ' h-14 w-full text-lg shadow-lg shadow-wine/20'} disabled={!ok}
+          onClick={() => { vib(30); const g = games.find((x) => x.id === gameId); if (g) void setLive(newLive(gameId!, g.opponent, conv, start)); }}>▶ Inizia partita</button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 @tailwind base;@tailwind components;@tailwind utilities;
 html,body,#root{height:100%}
-body{@apply bg-bg text-white antialiased;font-family:Inter,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+body{@apply bg-bg text-ink antialiased;font-family:Inter,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 input,select,textarea{font:inherit;color:inherit}select option{color:#000}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
