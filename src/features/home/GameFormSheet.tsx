@@ -9,6 +9,7 @@ import { useGames } from '@/db/hooks';
 import { OUTCOME_LABEL, outcomeOf, type Game } from '@/db/types';
 import { confirmDialog, toast } from '@/store/feedback';
 import { haptic } from '@/lib/haptics';
+import { useUI } from '@/store/ui';
 import { fmtLong } from '@/lib/dates';
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
 export function GameFormSheet({ game, readOnly = false, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<Game | null>(game);
   const [busy, setBusy] = useState(false);
+  const openReport = useUI((s) => s.openReport);
   const games = useGames();
   useEffect(() => {
     if (game) setDraft(game);
@@ -86,17 +88,24 @@ export function GameFormSheet({ game, readOnly = false, onClose, onSaved }: Prop
       {draft && (
         <fieldset disabled={readOnly} className="min-w-0">
           {finished && (
-            <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-night/50 p-4">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                openReport(draft.id!);
+              }}
+              className="pressable mb-4 flex w-full items-center justify-between rounded-2xl border border-line bg-night/50 p-4 text-left"
+            >
               <div>
                 <div className="label !mb-0.5">Risultato finale</div>
-                <div className="text-sm font-semibold text-ink-muted">{OUTCOME_LABEL[outcomeOf(draft)]}</div>
+                <div className="text-sm font-semibold text-ink-muted">{OUTCOME_LABEL[outcomeOf(draft)]} · apri il resoconto</div>
               </div>
               <div className="font-display text-4xl font-extrabold tabular">
                 {draft.scoreUs ?? 0}
                 <span className="mx-1 text-ink-faint">–</span>
                 {draft.scoreThem ?? 0}
               </div>
-            </div>
+            </button>
           )}
           <Field label="Avversario">
             <input

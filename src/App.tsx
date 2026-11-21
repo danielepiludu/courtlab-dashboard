@@ -8,6 +8,7 @@ import { MatchSetupScreen } from '@/features/match/MatchSetupScreen';
 import { ReportsScreen } from '@/features/reports/ReportsScreen';
 import { LiveScreen } from '@/features/live/LiveScreen';
 import { TeamsScreen } from '@/features/teams/TeamsScreen';
+import { ReportScreen } from '@/features/report/ReportScreen';
 import { ThemeController } from '@/theme/ThemeController';
 import { db, requestPersistentStorage } from '@/db/db';
 import { ensureTeam, importLegacyOnce } from '@/db/repo';
@@ -77,6 +78,7 @@ export default function App() {
             </main>
             <TabBar />
             <TeamsScreen />
+            <ReportScreen />
           </div>
         ))}
       {!splashGone && <Splash leaving={ready} />}

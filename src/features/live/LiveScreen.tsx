@@ -113,7 +113,7 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
           {/* onda luminosa dietro al numero */}
           {flash > 0 && <span key={flash} className={cx('score-ring pointer-events-none absolute inset-[-10px] rounded-full', accent ? 'bg-brand/50' : 'bg-white/30')} />}
           <span key={score} className="score-roll pointer-events-none relative">
-            <Num value={score} digit={0.5} className="pt-[0.12em] text-[46px] font-semibold [@media(min-height:600px)]:text-[58px]" />
+            <Num value={score} className="text-[38px] [@media(min-height:600px)]:text-[48px]" />
           </span>
           {/* +N / −N che sale accanto al punteggio */}
           {pops.map((p) => (
@@ -179,6 +179,7 @@ export function LiveScreen() {
   const setSubstrate = useUI((s) => s.setSubstrate);
   const setTab = useUI((s) => s.setTab);
   const resetSetup = useUI((s) => s.resetSetup);
+  const openReport = useUI((s) => s.openReport);
   const now = useNow(250);
   const [selOn, setSelOn] = useState<number[]>([]);
   const [selBench, setSelBench] = useState<number[]>([]);
@@ -278,11 +279,12 @@ export function LiveScreen() {
     });
     if (!ok) return;
     haptic.confirm();
-    await finishLive();
+    const gameId = await finishLive();
     resetSetup(live.teamId);
     await exitGameMode();
     setTab('reports');
     setSubstrate('tabs');
+    if (gameId != null) openReport(gameId);
     toast(`Partita salvata: ${v.us}–${v.them}`, 'success', 3000);
   };
 
@@ -322,7 +324,7 @@ export function LiveScreen() {
               onContextMenu={(e) => e.preventDefault()}
             >
               <div className="flex flex-col items-center gap-1">
-                <span className={cx('rounded-md px-1.5 pt-0.5 font-score text-[18px] font-semibold leading-none tracking-wide', v.period >= 4 ? 'bg-warn/20 text-warn' : 'bg-white/10 text-ink')}>{periodLabel(v.period)}</span>
+                <span className={cx('rounded-md px-1.5 py-0.5 font-display text-[15px] font-extrabold leading-none tracking-wide', v.period >= 4 ? 'bg-warn/20 text-warn' : 'bg-white/10 text-ink')}>{periodLabel(v.period)}</span>
                 {v.running ? (
                   <span className="flex items-center gap-1 text-[9px] font-extrabold tracking-widest text-danger">
                     <i className="live-dot h-1.5 w-1.5 rounded-full bg-danger" />
@@ -334,12 +336,12 @@ export function LiveScreen() {
               </div>
               <span
                 className={cx(
-                  'rounded-lg bg-black/30 px-1.5 pt-1 ring-1 ring-white/10 transition-colors',
+                  'rounded-lg bg-black/30 px-1.5 py-0.5 ring-1 ring-white/10 transition-colors',
                   over ? 'text-brand-text' : lastSecs ? 'text-warn' : !v.running && v.started ? 'text-ink-muted' : 'text-white',
                 )}
                 style={v.running ? { textShadow: '0 0 18px rgba(255,255,255,.35)' } : undefined}
               >
-                <Num value={mmss(v.remainingMs, 'ceil')} className="text-[44px] font-semibold [@media(min-height:600px)]:text-[60px]" />
+                <Num value={mmss(v.remainingMs, 'ceil')} className="text-[38px] [@media(min-height:600px)]:text-[52px]" />
               </span>
             </div>
             <div className="flex gap-1.5">

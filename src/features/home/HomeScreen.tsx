@@ -85,6 +85,14 @@ export function HomeScreen() {
     setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d, 1));
   };
 
+  const openReport = useUI((s) => s.openReport);
+  /** partite concluse: si apre il resoconto; le altre: la scheda partita */
+  const openGame = (g: Game) => {
+    haptic.tap();
+    if (g.status === 'finished') openReport(g.id!);
+    else setEditing(g);
+  };
+
   const prepare = (g: Game) => {
     haptic.select();
     if (setup.gameId !== g.id) patchSetup({ gameId: g.id! });
@@ -185,7 +193,7 @@ export function HomeScreen() {
         </SectionTitle>
         <div key={selected} className="stagger space-y-2">
           {dayGames.length ? (
-            dayGames.map((g) => <GameRow key={g.id} game={g} onClick={() => setEditing(g)} />)
+            dayGames.map((g) => <GameRow key={g.id} game={g} onClick={() => openGame(g)} />)
           ) : (
             <div className="anim-fade rounded-2xl border border-dashed border-line px-4 py-4 text-center text-[14px] text-ink-muted">Nessuna partita in questa data</div>
           )}
@@ -196,7 +204,7 @@ export function HomeScreen() {
             <SectionTitle>Prossime partite</SectionTitle>
             <div className="stagger space-y-2">
               {upcoming.slice(1, 7).map((g) => (
-                <GameRow key={g.id} game={g} onClick={() => setEditing(g)} />
+                <GameRow key={g.id} game={g} onClick={() => openGame(g)} />
               ))}
             </div>
           </>
@@ -215,7 +223,7 @@ export function HomeScreen() {
             </SectionTitle>
             <div className="stagger space-y-2">
               {finished.slice(0, 3).map((g) => (
-                <GameRow key={g.id} game={g} onClick={() => setEditing(g)} />
+                <GameRow key={g.id} game={g} onClick={() => openGame(g)} />
               ))}
             </div>
           </>

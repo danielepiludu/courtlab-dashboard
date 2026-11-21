@@ -27,6 +27,10 @@ interface UIState {
   /** schermata Squadre (non è una tab) */
   teamsOpen: boolean;
   setTeamsOpen: (o: boolean) => void;
+  /** resoconto aperto (id partita) */
+  reportGameId: number | null;
+  openReport: (gameId: number) => void;
+  closeReport: () => void;
   /** bozza di convocazione, separata per ogni squadra */
   setups: Record<number, SetupDraft>;
   patchSetup: (p: Partial<SetupDraft>) => void;
@@ -44,6 +48,9 @@ export const useUI = create<UIState>()(
       setSubstrate: (substrate) => set({ substrate }),
       teamsOpen: false,
       setTeamsOpen: (teamsOpen) => set({ teamsOpen }),
+      reportGameId: null,
+      openReport: (reportGameId) => set({ reportGameId }),
+      closeReport: () => set({ reportGameId: null }),
       setups: {},
       patchSetup: (p) => {
         const id = get().activeTeamId;

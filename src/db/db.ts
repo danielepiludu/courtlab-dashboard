@@ -1,5 +1,5 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
-import { BUILTIN_LOGO, type Game, type Player, type Team } from './types';
+import { BUILTIN_LOGO, type Game, type GameReport, type Player, type ReportPlayer, type Team } from './types';
 import { DEFAULT_TEAM } from '@/config';
 
 /** Record generico chiave/valore (stato partita in corso, resoconti, impostazioni) */
@@ -19,6 +19,7 @@ export class AppDB extends Dexie {
   players!: Table<Player, number>;
   games!: Table<Game, number>;
   kv!: Table<KV, string>;
+  reports!: Table<GameReport, number>;
 
   constructor() {
     super('donbosco-basket-monitor');
@@ -40,6 +41,28 @@ export class AppDB extends Dexie {
         const teamId = (await tx.table('teams').add(defaultTeam())) as number;
         await tx.table('players').toCollection().modify((p: Player) => void (p.teamId = teamId));
         await tx.table('games').toCollection().modify((g: Game) => void (g.teamId = teamId));
+      });
+    // v3: tabella dei resoconti (prima in kv come "report:<id>")
+    this.version(3)
+      .stores({
+        teams: '++id, createdAt',
+        players: '++id, teamId, name, number, role, status',
+        games: '++id, teamId, date, status',
+        kv: 'key',
+        reports: 'gameId, teamId',
+      })
+      .upgrade(async (tx: Transaction) => {
+        const old = (await tx.table('kv').where('key').startsWith('report:').toArray()) as KV[];
+        const players = (await tx.table('players').toArray()) as Player[];
+        for (const rec of old) {
+          const live = rec.value as GameReport['live'] & { finishedAt?: number };
+          const snap: ReportPlayer[] = live.called.map((id) => {
+            const p = players.find((x) => x.id === id);
+            return { id, name: p?.name ?? `Giocatore ${id}`, number: p?.number ?? '', role: p?.role ?? 'SF' };
+          });
+          await tx.table('reports').put({ gameId: live.gameId, teamId: live.teamId, finishedAt: live.finishedAt ?? rec.updatedAt, players: snap, live });
+          await tx.table('kv').delete(rec.key);
+        }
       });
     // Primo avvio: crea la squadra predefinita
     this.on('populate', (tx) => {

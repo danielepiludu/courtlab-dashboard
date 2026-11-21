@@ -35,6 +35,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2,webmanifest}'],
+        // moduli opzionali di jsPDF mai usati dall'app (html(), SVG): non servono offline
+        globIgnores: ['**/html2canvas*', '**/purify.es*', '**/index.es-*'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },

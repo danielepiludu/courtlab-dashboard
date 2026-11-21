@@ -48,8 +48,13 @@ export async function finishLive(): Promise<number | null> {
   if (!cur) return null;
   const now = Date.now();
   const final = { ...settle(cur, now), running: false };
-  await db.transaction('rw', db.games, db.kv, async () => {
-    await db.kv.put({ key: `report:${cur.gameId}`, value: { ...final, finishedAt: now }, updatedAt: now });
+  const roster = await db.players.bulkGet(cur.called);
+  const players = cur.called.map((id, i) => {
+    const p = roster[i];
+    return { id, name: p?.name ?? `Giocatore ${id}`, number: p?.number ?? '', role: p?.role ?? ('SF' as const) };
+  });
+  await db.transaction('rw', [db.games, db.kv, db.reports], async () => {
+    await db.reports.put({ gameId: cur.gameId, teamId: cur.teamId, finishedAt: now, players, live: final });
     const g = await db.games.get(cur.gameId);
     if (g) await db.games.put({ ...g, status: 'finished', scoreUs: final.us, scoreThem: final.them, finishedAt: now, updatedAt: now });
     await db.kv.delete(KEY);

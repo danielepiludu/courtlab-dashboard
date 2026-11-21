@@ -19,6 +19,23 @@ export interface Team {
 
 export const BUILTIN_LOGO = 'builtin:donbosco';
 
+/** Giocatore come era al momento della partita (il resoconto non dipende da modifiche successive). */
+export interface ReportPlayer {
+  id: number;
+  name: string;
+  number: string;
+  role: Role;
+}
+
+/** Resoconto di una partita conclusa: stato finale della partita + istantanea dei convocati. */
+export interface GameReport {
+  gameId: number;
+  teamId: number;
+  finishedAt: number;
+  players: ReportPlayer[];
+  live: import('@/features/live/liveModel').LiveState;
+}
+
 export type Role = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 export const ROLES: Role[] = ['PG', 'SG', 'SF', 'PF', 'C'];
 export const ROLE_LABEL: Record<Role, string> = {
