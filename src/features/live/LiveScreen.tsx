@@ -14,7 +14,7 @@ import { confirmDialog, toast } from '@/store/feedback';
 import { finishLive, useLive } from '@/store/live';
 import { useUI } from '@/store/ui';
 import { Court } from './Court';
-import { BenchCard, CourtCard, shortName } from './PlayerCards';
+import { BenchCard, CourtCard, shortName, type Trend } from './PlayerCards';
 import { CARD_H, CARD_W, SLOTS_M, computeView, type CourtView } from './courtGeometry';
 import { IntDebugSheet } from './IntDebugSheet';
 import { addScore, adjustClock, intNow, mmss, periodLabel, periodLength, periodOver, restMs, settle, substitute, toggleClock, undoScore } from './liveModel';
@@ -218,6 +218,12 @@ export function LiveScreen() {
 
   if (!live || !v) return null;
 
+  const trendOf = (id: number): Trend => {
+    if (!v.started) return 'idle';
+    if (v.players[id]?.onCourt) return v.running ? 'up' : 'slow';
+    return intNow(v, id, now) > 0.005 ? 'down' : 'idle';
+  };
+
   const bench = calledPlayers.filter((p) => !v.players[p.id!]?.onCourt).sort((a, b) => Number(a.number || 999) - Number(b.number || 999));
   const canConfirm = selOn.length > 0 && selOn.length === selBench.length;
   const anySel = selOn.length + selBench.length > 0;
@@ -396,6 +402,7 @@ export function LiveScreen() {
                     restMs={restMs(s, now)}
                     started={v.started}
                     int={intNow(v, p.id!, now)}
+                    trend={trendOf(p.id!)}
                     selected={selBench.includes(p.id!)}
                     onTap={() => tap(p.id!, false)}
                   />
@@ -449,7 +456,7 @@ export function LiveScreen() {
                 className="absolute"
                 style={{ left: (x - CARD_W / 2 - view.x0) * view.s, top: (y - CARD_H / 2 - view.y0) * view.s, width: CARD_W * view.s, height: CARD_H * view.s }}
               >
-                <CourtCard p={p} name={shortName(p, calledPlayers)} playedMs={s.playedMs} int={intNow(v, id, now)} selected={selOn.includes(id)} onTap={() => tap(id, true)} />
+                <CourtCard p={p} name={shortName(p, calledPlayers)} playedMs={s.playedMs} int={intNow(v, id, now)} trend={trendOf(id)} selected={selOn.includes(id)} onTap={() => tap(id, true)} />
               </div>
             );
           })}
