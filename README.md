@@ -34,13 +34,25 @@ Basi dalla letteratura (le stesse citate da 5in.app):
 - **Gómez et al., 2016** — le sostituzioni servono a recuperare.
 
 Modello (carico acuto A + residuo R):
-- **a) in campo, cronometro in corso**: `dA/dt = 0,07 · (1 + 0,08·min consecutivi) · (1 + 0,015·min totali) · (1 − A)` (soluzione esatta).
-- **b) in campo, cronometro fermo**: `A · exp(−t / 15′)` (tempo reale).
-- **c) in panchina**: `A_uscita · exp(−t / τ)`, con `τ = 5′ · (1 + 0,02·min totali)`: più minuti giocati, recupero più lento.
+- **a) in gioco** (cronometro in corso): `dA/dt = 0,07 · (1 + 0,08·min consecutivi) · (1 + 0,015·min totali) · (1 − A)` (soluzione esatta). I minuti consecutivi ripartono da 0 a ogni ingresso e dopo ogni intervallo.
+- **b) interruzioni in campo** (cronometro fermo): nei primi **20 s** nessun recupero (fallo, rimessa, tiri liberi), poi `A · exp(−t / 10′)` (timeout, interruzioni lunghe).
+- **c) panchina**: `A_uscita · exp(−t / τ)`, con `τ = 5′ · (1 + 0,02·min totali)`: più minuti giocati, recupero più lento.
+- **d) intervalli tra i periodi**: tutti recuperano come in panchina (anche chi chiude il periodo in campo).
 - **residuo** `R = min(0,3; 0,005·min totali)`: fatica che non si smaltisce durante la partita.
-- **INT = R + (1 − R) · A**, sempre tra 0 e 1. Da riposato: **0,37 dopo 5′, 0,67 dopo 10′, 0,86 dopo 15′** di gioco consecutivo; non arriva mai a 1.
+- **INT = R + (1 − R) · A**, sempre tra 0 e 1.
 
-Grafica: anello attorno alla foto e barra a gradiente **bianco → giallo → arancio → rosso** (soglie 0,35 · 0,65 · 0,80), freccia di tendenza (sale / cala piano / recupera), livello (Fresco, Attivo, Affaticato, Da cambiare); sopra 0,80 l'anello pulsa.
+Scenari verificati dai test (`liveModel.test.ts`, "scenari di partita"):
+
+| Situazione | INT |
+|---|---|
+| 3′ / 5′ / 8′ / 10′ di gioco continuo da riposato | 0,23 / 0,37 / 0,56 / 0,67 |
+| 10′ di gioco con fermate di 30 s ogni 30 s | 0,62 |
+| timeout di 1′ dopo 5′ | 0,37 → 0,35 |
+| intervallo di 2′ dopo 10′ in campo | 0,67 → 0,49 |
+| intervallo di metà gara (15′) | 0,67 → 0,10 (resta il residuo) |
+| 5′ in campo, poi 2′ / 4′ in panchina | 0,37 → 0,26 / 0,19 |
+
+Grafica: numero INT grande (font Teko) colorato **bianco → giallo → arancio → rosso** con barra dritta a gradiente sotto, freccia di tendenza (sale / cala piano / recupera), livello (Fresco, Attivo, Affaticato, Da cambiare); sopra 0,80 il bordo della card pulsa di rosso.
 
 Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una chiusura l'INT si ricostruisce esattamente. Ogni 30 s viene registrato un campione per il grafico del resoconto. **Vista debug nascosta**: tieni premuto il cronometro per circa 1 secondo.
 

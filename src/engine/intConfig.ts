@@ -15,9 +15,12 @@
  * Modello:
  *   carico acuto A ∈ [0,1):
  *     a) in campo, cronometro in corso:   dA/dt = k · (1 + aC·min_consecutivi) · (1 + aT·min_totali) · (1 − A)
- *     b) in campo, cronometro fermo:      A · exp(−t / τ_fermo)                       (tempo reale)
+ *        min_consecutivi = minuti di gioco dall'ultimo ingresso (o dall'inizio del periodo dopo un intervallo)
+ *     b) in campo, cronometro fermo:      nei primi `stopGraceSec` secondi nessun recupero (fallo, rimessa, liberi),
+ *                                          poi A · exp(−t / τ_fermo) (tempo reale; timeout, interruzioni lunghe)
  *     c) in panchina:                     A_uscita · exp(−t / τ_panchina)              (tempo reale)
  *                                          τ_panchina = τ0 · (1 + bT·min_totali)       (recupero più lento a fine gara)
+ *     d) intervalli tra i periodi:        tutti recuperano come in panchina; al periodo successivo lo stint riparte da 0
  *   residuo R = min(Rmax, r · min_totali)       — fatica accumulata che non si recupera durante la partita
  *   INT = R + (1 − R) · A                       — sempre tra 0 e 1
  *
@@ -32,6 +35,8 @@ export interface IntConfig {
   totalCoef: number;
   /** τ in campo a cronometro fermo (minuti reali) */
   tauCourtStoppedMin: number;
+  /** secondi iniziali di ogni interruzione senza recupero */
+  stopGraceSec: number;
   /** τ0 in panchina (minuti reali) */
   tauBenchMin: number;
   /** bT: quanto rallenta il recupero per ogni minuto giocato in totale */
@@ -48,7 +53,8 @@ export const INT_CONFIG: Readonly<IntConfig> = {
   riseRate: 0.07,
   consecutiveCoef: 0.08,
   totalCoef: 0.015,
-  tauCourtStoppedMin: 15,
+  tauCourtStoppedMin: 10,
+  stopGraceSec: 20,
   tauBenchMin: 5,
   tauBenchTotalCoef: 0.02,
   residualPerMin: 0.005,

@@ -33,6 +33,8 @@ export default {
       fontFamily: {
         sans: ['Barlow', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
         display: ['"Barlow Condensed"', 'Barlow', 'system-ui', 'sans-serif'],
+        // numeri "da tabellone" (cronometro, punteggio, INT, minuti)
+        score: ['Teko', '"Barlow Condensed"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         glow: `0 0 0 2px var(--c-select), 0 0 18px 2px ${glow('select', 45)}`,

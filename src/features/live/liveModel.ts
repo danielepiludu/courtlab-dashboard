@@ -8,7 +8,7 @@
 import { GAME } from '@/config';
 import type { Role } from '@/db/types';
 import { INT_CONFIG } from '@/engine/intConfig';
-import { combineInt, decayBench, decayCourtStopped, riseAcute, unriseAcute } from '@/engine/int';
+import { combineInt, decayBench, decayCourtStopped, riseAcute, stopRecoveryMs, unriseAcute } from '@/engine/int';
 
 export interface PlayerLive {
   id: number;
@@ -82,6 +82,8 @@ export interface LiveState {
   startedAt: number | null;
   /** prossimo campione INT da registrare */
   nextSampleAt: number | null;
+  /** istante in cui il cronometro si è fermato (per le interruzioni in campo); null se in corso o non iniziata */
+  stoppedAt: number | null;
   samples: IntSample[];
 }
 
@@ -96,7 +98,8 @@ export function normalizeLive(s: LiveState): LiveState {
     players[+k] = { ...p, acute, peak };
   }
   const startedAt = s.startedAt ?? (s.started ? (s.events.find((e) => e.type === 'start')?.t ?? s.settledAt) : null);
-  return { ...s, players, startedAt, nextSampleAt: s.nextSampleAt ?? (startedAt != null ? s.settledAt : null), samples: s.samples ?? [] };
+  const stoppedAt = s.stoppedAt !== undefined ? s.stoppedAt : s.started && !s.running ? s.settledAt : null;
+  return { ...s, players, startedAt, stoppedAt, nextSampleAt: s.nextSampleAt ?? (startedAt != null ? s.settledAt : null), samples: s.samples ?? [] };
 }
 
 export const periodLength = (p: number) => (p < GAME.quarters ? GAME.quarterMs : GAME.overtimeMs);
@@ -154,6 +157,7 @@ export function createLive(p: {
     events: [],
     startedAt: null,
     nextSampleAt: null,
+    stoppedAt: null,
     samples: [],
   };
 }
@@ -165,12 +169,20 @@ export function createLive(p: {
  */
 export function playerAcuteAt(p: PlayerLive, s: LiveState, t: number): { acute: number; playedMs: number } {
   if (!s.started) return { acute: p.acute, playedMs: p.playedMs };
+  // c) panchina: recupero in tempo reale dal valore di uscita
   if (!p.onCourt) return { acute: p.restSince != null ? decayBench(p.acute, t - p.restSince, p.playedMs) : p.acute, playedMs: p.playedMs };
   const dt = Math.max(0, t - s.settledAt);
-  if (!s.running) return { acute: decayCourtStopped(p.acute, dt), playedMs: p.playedMs };
+  if (!s.running) {
+    // d) intervallo tra i periodi: si recupera come in panchina
+    if (s.remainingMs <= 0) return { acute: decayBench(p.acute, dt, p.playedMs), playedMs: p.playedMs };
+    // b) interruzione: niente recupero nei primi secondi, poi recupero lento
+    return { acute: decayCourtStopped(p.acute, stopRecoveryMs(s.stoppedAt ?? s.settledAt, s.settledAt, t)), playedMs: p.playedMs };
+  }
+  // a) in gioco: sale; se il periodo finisce nel frattempo, da lì in poi è intervallo
   const game = Math.min(dt, s.remainingMs);
   const up = riseAcute(p.acute, p.stintMs, p.playedMs, game);
-  return { acute: dt > game ? decayCourtStopped(up, dt - game) : up, playedMs: p.playedMs + game };
+  const played = p.playedMs + game;
+  return { acute: dt > game ? decayBench(up, dt - game, played) : up, playedMs: played };
 }
 
 /** INT (0–1) all'istante `t`. */
@@ -199,59 +211,59 @@ function sampleAt(s: LiveState, t: number): IntSample {
 export function settle(s: LiveState, now: number): LiveState {
   const dt = Math.max(0, now - s.settledAt);
   if (dt === 0) return s;
+  if (!s.started) return { ...s, settledAt: now };
   // Campioni INT per il grafico, calcolati in modo esatto sull'intervallo [settledAt, now]
   let samples = s.samples;
   let nextSampleAt = s.nextSampleAt;
-  if (s.started && nextSampleAt != null && nextSampleAt <= now) {
+  if (nextSampleAt != null && nextSampleAt <= now) {
     samples = [...samples];
     while (nextSampleAt <= now) {
       samples.push(sampleAt(s, nextSampleAt));
       nextSampleAt += INT_CONFIG.sampleEveryMs;
     }
   }
-  if (!s.running) {
-    if (!s.started) return { ...s, settledAt: now };
-    const players: Record<number, PlayerLive> = {};
-    for (const [k, p] of Object.entries(s.players)) players[+k] = p.onCourt ? { ...p, acute: decayCourtStopped(p.acute, dt) } : p;
-    return { ...s, players, settledAt: now, samples, nextSampleAt };
-  }
-  const game = Math.min(dt, s.remainingMs);
-  const ended = game >= s.remainingMs;
+  const game = s.running ? Math.min(dt, s.remainingMs) : 0;
+  const ended = s.running && game >= s.remainingMs;
   const players: Record<number, PlayerLive> = {};
   for (const [k, p] of Object.entries(s.players)) {
     if (!p.onCourt) {
-      players[+k] = p;
+      players[+k] = p; // in panchina il valore di uscita resta, il recupero si calcola da restSince
       continue;
     }
-    const up = riseAcute(p.acute, p.stintMs, p.playedMs, game);
-    const acute = dt > game ? decayCourtStopped(up, dt - game) : up;
-    players[+k] = { ...p, playedMs: p.playedMs + game, stintMs: p.stintMs + game, acute, peak: Math.max(p.peak, combineInt(up, p.playedMs + game)) };
+    const { acute } = playerAcuteAt(p, s, now);
+    const peak = game > 0 ? Math.max(p.peak, combineInt(riseAcute(p.acute, p.stintMs, p.playedMs, game), p.playedMs + game)) : p.peak;
+    players[+k] = { ...p, playedMs: p.playedMs + game, stintMs: p.stintMs + game, acute, peak };
   }
+  const tEnd = s.settledAt + game;
   return {
     ...s,
     players,
     remainingMs: s.remainingMs - game,
-    running: !ended,
+    running: s.running && !ended,
+    stoppedAt: ended ? tEnd : s.stoppedAt,
     settledAt: now,
     samples,
     nextSampleAt,
-    events: ended ? [...s.events, { t: s.settledAt + game, type: 'period_end', period: s.period }] : s.events,
+    events: ended ? [...s.events, { t: tEnd, type: 'period_end', period: s.period }] : s.events,
   };
 }
 
 /** Start/Stop. Dopo la fine del periodo, Start passa al periodo successivo e lo avvia. */
 export function toggleClock(s0: LiveState, now: number): LiveState {
   const s = settle(s0, now);
-  if (s.running) return { ...s, running: false, events: [...s.events, { t: now, type: 'stop' }] };
+  if (s.running) return { ...s, running: false, stoppedAt: now, events: [...s.events, { t: now, type: 'stop' }] };
   if (s.remainingMs <= 0) {
+    // nuovo periodo: dopo l'intervallo lo stint di chi è in campo riparte da zero
     const period = s.period + 1;
-    return { ...s, period, remainingMs: periodLength(period), running: true, events: [...s.events, { t: now, type: 'period_start', period }] };
+    const players: Record<number, PlayerLive> = {};
+    for (const [k, p] of Object.entries(s.players)) players[+k] = p.onCourt ? { ...p, stintMs: 0 } : p;
+    return { ...s, players, period, remainingMs: periodLength(period), running: true, stoppedAt: null, events: [...s.events, { t: now, type: 'period_start', period }] };
   }
   if (!s.started) {
     // prima pressione di Start: partono anche i tempi REST
     const players: Record<number, PlayerLive> = {};
     for (const [k, p] of Object.entries(s.players)) players[+k] = p.onCourt ? p : { ...p, restSince: now };
-    const first = { ...s, players, started: true, startedAt: now };
+    const first = { ...s, players, started: true, startedAt: now, stoppedAt: null };
     return {
       ...first,
       running: true,
@@ -260,7 +272,7 @@ export function toggleClock(s0: LiveState, now: number): LiveState {
       events: [...s.events, { t: now, type: 'period_start', period: s.period }, { t: now, type: 'start' }],
     };
   }
-  return { ...s, running: true, events: [...s.events, { t: now, type: 'start' }] };
+  return { ...s, running: true, stoppedAt: null, events: [...s.events, { t: now, type: 'start' }] };
 }
 
 /**
@@ -312,7 +324,10 @@ export function adjustClock(s0: LiveState, deltaMs: number, now: number): LiveSt
   const ended = s.running && remainingMs <= 0;
   const events: LiveEvent[] = [...s.events, { t: now, type: 'adjust', deltaMs: d }];
   if (ended) events.push({ t: now, type: 'period_end', period: s.period });
-  return { ...s, players, remainingMs, running: s.running && !ended, events };
+  // riaprire un periodo finito lo trasforma in una normale interruzione da adesso
+  const reopened = s.remainingMs <= 0 && remainingMs > 0;
+  const stoppedAt = ended ? now : reopened ? now : s.stoppedAt;
+  return { ...s, players, remainingMs, running: s.running && !ended, stoppedAt, events };
 }
 
 export function addScore(s: LiveState, side: 'us' | 'them', pts: 1 | 2 | 3, now: number): LiveState {

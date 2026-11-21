@@ -26,9 +26,13 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
     } else if (s.onCourt && v.running) {
       regime = 'a) sale';
       detail = `λ ${lambdaPerMin(s.stintMs, s.playedMs).toFixed(3)}/min`;
+    } else if (s.onCourt && v.remainingMs <= 0) {
+      regime = 'd) intervallo';
+      detail = `recupero come in panchina · τ ${tauBenchMin(s.playedMs).toFixed(1)}′`;
     } else if (s.onCourt) {
-      regime = 'b) cala piano';
-      detail = `τ ${c.tauCourtStoppedMin}′`;
+      const stop = (now - (v.stoppedAt ?? now)) / 1000;
+      regime = stop < c.stopGraceSec ? 'b) pausa breve' : 'b) cala piano';
+      detail = stop < c.stopGraceSec ? `nessun recupero per ${Math.ceil(c.stopGraceSec - stop)} s` : `τ ${c.tauCourtStoppedMin}′ · fermo da ${Math.round(stop)} s`;
     } else {
       regime = 'c) recupero';
       detail = `uscita A ${s.acute.toFixed(3)} · τ ${tauBenchMin(s.playedMs).toFixed(1)}′ · ${mmss(restMs(s, now))}`;
@@ -40,7 +44,7 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
       <div className="mb-3 rounded-xl border border-line bg-night/50 p-3 font-mono text-[12px] leading-relaxed text-ink-muted">
         a) dA/dt = {c.riseRate} · (1 + {c.consecutiveCoef}·min consecutivi) · (1 + {c.totalCoef}·min totali) · (1 − A)
         <br />
-        b) in campo, cronometro fermo: A · exp(−t / {c.tauCourtStoppedMin}′) · c) panchina: A_uscita · exp(−t / τ), τ = {c.tauBenchMin}′·(1 + {c.tauBenchTotalCoef}·min totali)
+        b) cronometro fermo: primi {c.stopGraceSec} s nessun recupero, poi A · exp(−t / {c.tauCourtStoppedMin}′) · c) panchina e d) intervalli: A · exp(−t / τ), τ = {c.tauBenchMin}′·(1 + {c.tauBenchTotalCoef}·min totali)
         <br />
         residuo R = min({c.residualMax}, {c.residualPerMin}·min totali) · INT = R + (1 − R)·A · campioni ogni {c.sampleEveryMs / 1000}s ({v.samples.length})
       </div>

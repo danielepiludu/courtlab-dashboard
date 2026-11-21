@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { ArrowLeftRight, EllipsisVertical, Expand, FastForward, LogOut, Pause, Play, Rewind, RotateCcw, RotateCw, Square, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
+import { Num } from '@/components/ui/Num';
+import { INT_CONFIG } from '@/engine/intConfig';
 import { TeamLogo } from '@/components/TeamLogo';
 import { useActiveTeam, usePlayers } from '@/db/hooks';
 import type { Player, Role } from '@/db/types';
@@ -14,7 +16,7 @@ import { confirmDialog, toast } from '@/store/feedback';
 import { finishLive, useLive } from '@/store/live';
 import { useUI } from '@/store/ui';
 import { Court } from './Court';
-import { BenchCard, CourtCard, shortName, type Trend } from './PlayerCards';
+import { BenchCard, CourtCard, IntLegend, shortName, type Trend } from './PlayerCards';
 import { CARD_H, CARD_W, SLOTS_M, computeView, type CourtView } from './courtGeometry';
 import { IntDebugSheet } from './IntDebugSheet';
 import { addScore, adjustClock, intNow, mmss, periodLabel, periodLength, periodOver, restMs, settle, substitute, toggleClock, undoScore } from './liveModel';
@@ -110,8 +112,8 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
         <span className="relative inline-grid place-items-center">
           {/* onda luminosa dietro al numero */}
           {flash > 0 && <span key={flash} className={cx('score-ring pointer-events-none absolute inset-[-10px] rounded-full', accent ? 'bg-brand/50' : 'bg-white/30')} />}
-          <span key={score} className="score-roll pointer-events-none relative font-display text-[34px] font-extrabold leading-none tabular [@media(min-height:600px)]:text-[44px]">
-            {score}
+          <span key={score} className="score-roll pointer-events-none relative">
+            <Num value={score} digit={0.5} className="pt-[0.12em] text-[46px] font-semibold [@media(min-height:600px)]:text-[58px]" />
           </span>
           {/* +N / −N che sale accanto al punteggio */}
           {pops.map((p) => (
@@ -220,7 +222,11 @@ export function LiveScreen() {
 
   const trendOf = (id: number): Trend => {
     if (!v.started) return 'idle';
-    if (v.players[id]?.onCourt) return v.running ? 'up' : 'slow';
+    if (v.players[id]?.onCourt) {
+      if (v.running) return 'up';
+      if (v.remainingMs <= 0) return 'down'; // intervallo: si recupera come in panchina
+      return now - (v.stoppedAt ?? now) < INT_CONFIG.stopGraceSec * 1000 ? 'idle' : 'slow';
+    }
     return intNow(v, id, now) > 0.005 ? 'down' : 'idle';
   };
 
@@ -315,14 +321,25 @@ export function LiveScreen() {
               onPointerCancel={() => pressTimer.current && clearTimeout(pressTimer.current)}
               onContextMenu={(e) => e.preventDefault()}
             >
-              <span className={cx('rounded-full px-2 py-0.5 text-[13px] font-extrabold leading-tight tracking-wide', v.period >= 4 ? 'bg-warn/20 text-warn' : 'bg-white/10 text-ink')}>{periodLabel(v.period)}</span>
+              <div className="flex flex-col items-center gap-1">
+                <span className={cx('rounded-md px-1.5 pt-0.5 font-score text-[18px] font-semibold leading-none tracking-wide', v.period >= 4 ? 'bg-warn/20 text-warn' : 'bg-white/10 text-ink')}>{periodLabel(v.period)}</span>
+                {v.running ? (
+                  <span className="flex items-center gap-1 text-[9px] font-extrabold tracking-widest text-danger">
+                    <i className="live-dot h-1.5 w-1.5 rounded-full bg-danger" />
+                    LIVE
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-extrabold tracking-widest text-ink-faint">{over ? 'FINE' : v.started ? 'STOP' : 'PRONTI'}</span>
+                )}
+              </div>
               <span
                 className={cx(
-                  'font-display text-[36px] font-extrabold leading-none tabular transition-colors [@media(min-height:600px)]:text-[48px]',
-                  over ? 'text-brand-text' : lastSecs ? 'text-warn' : !v.running && v.started ? 'text-ink-muted' : 'text-ink',
+                  'rounded-lg bg-black/30 px-1.5 pt-1 ring-1 ring-white/10 transition-colors',
+                  over ? 'text-brand-text' : lastSecs ? 'text-warn' : !v.running && v.started ? 'text-ink-muted' : 'text-white',
                 )}
+                style={v.running ? { textShadow: '0 0 18px rgba(255,255,255,.35)' } : undefined}
               >
-                {mmss(v.remainingMs, 'ceil')}
+                <Num value={mmss(v.remainingMs, 'ceil')} className="text-[44px] font-semibold [@media(min-height:600px)]:text-[60px]" />
               </span>
             </div>
             <div className="flex gap-1.5">
@@ -387,6 +404,9 @@ export function LiveScreen() {
           <div className="flex items-center gap-2 px-2.5 pb-1.5 pt-2">
             <h2 className="font-display text-[19px] font-extrabold uppercase tracking-[0.12em]">Panchina</h2>
             <span className="rounded-full bg-white/10 px-2 text-[13px] font-bold">{bench.length}</span>
+          </div>
+          <div className="px-2.5 pb-2">
+            <IntLegend />
           </div>
           {!v.started && <p className="px-2.5 pb-1.5 text-[12px] font-semibold leading-snug text-ink-muted">Premi Start per avviare i timer</p>}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pb-24">
