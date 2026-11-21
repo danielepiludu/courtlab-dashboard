@@ -13,6 +13,7 @@ import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { confirmDialog, toast } from '@/store/feedback';
 import { useUI } from '@/store/ui';
+import { useLive } from '@/store/live';
 import { nextSeason } from '@/config';
 import { TeamFormSheet } from './TeamFormSheet';
 
@@ -115,6 +116,11 @@ export function TeamsScreen() {
 
   const remove = (t: Team) =>
     run(async () => {
+      if (useLive.getState().live?.teamId === t.id) {
+        haptic.warn();
+        toast('Questa squadra ha una partita in corso: terminala prima', 'error');
+        return;
+      }
       if (teams.length <= 1) {
         haptic.warn();
         toast('Deve restare almeno una squadra', 'error');

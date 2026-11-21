@@ -12,6 +12,7 @@ import { ThemeController } from '@/theme/ThemeController';
 import { db, requestPersistentStorage } from '@/db/db';
 import { ensureTeam, importLegacyOnce } from '@/db/repo';
 import { useUI } from '@/store/ui';
+import { useLive } from '@/store/live';
 import { toast } from '@/store/feedback';
 import { SPLASH_MIN_MS } from '@/config';
 
@@ -26,8 +27,11 @@ function useBoot() {
         const n = await importLegacyOnce();
         if (n) toast(`Importati ${n} elementi dalla versione precedente`, 'success', 3500);
         const ui = useUI.getState();
-        const id = await ensureTeam(ui.activeTeamId);
+        // Partita in corso (es. app chiusa per sbaglio): si riprende da dove era
+        const live = await useLive.getState().load();
+        const id = await ensureTeam(live?.teamId ?? ui.activeTeamId);
         if (id !== ui.activeTeamId) ui.setActiveTeam(id);
+        ui.setSubstrate(live ? 'live' : 'tabs');
       } catch (e) {
         console.error(e);
         toast('Errore di accesso ai dati locali', 'error', 5000);

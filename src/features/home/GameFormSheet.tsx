@@ -73,7 +73,7 @@ export function GameFormSheet({ game, readOnly = false, onClose, onSaved }: Prop
       footer={
         !readOnly && (
         <div className="flex gap-3">
-          {draft?.id && (
+          {draft?.id && draft.status !== 'live' && (
             <Button variant="danger" size="lg" className="px-4" onClick={remove} aria-label="Elimina partita" icon={<Trash size={20} />} />
           )}
           <Button variant="primary" size="lg" className="flex-1" disabled={!valid || busy} onClick={save}>

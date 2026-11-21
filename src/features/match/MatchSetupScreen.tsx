@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, CalendarPlus, Check, CirclePlay, MapPin, Plane, Star, Users, Zap } from 'lucide-react';
+import { Archive, CalendarPlus, Check, CirclePlay, MapPin, Plane, Radio, Star, Users, Zap } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { RoleBadge, STATUS_META } from '@/components/ui/Badges';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/misc';
 import { useActiveTeam, useGames, usePlayers } from '@/db/hooks';
-import { setTeamArchived } from '@/db/repo';
+import { saveGame, setTeamArchived } from '@/db/repo';
+import { db } from '@/db/db';
 import type { Game, Player } from '@/db/types';
 import { fmtDayMonth, relativeDay, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
@@ -14,6 +15,9 @@ import { enterGameMode } from '@/lib/device';
 import { cx } from '@/lib/cx';
 import { toast } from '@/store/feedback';
 import { useSetup, useUI } from '@/store/ui';
+import { useLive } from '@/store/live';
+import { createLive, mmss, periodLabel, settle } from '@/features/live/liveModel';
+import { TeamLogo } from '@/components/TeamLogo';
 import { GAME } from '@/config';
 import { QuickGameSheet } from './QuickGameSheet';
 
@@ -165,17 +169,39 @@ export function MatchSetupScreen() {
         ? `Scegli ${N} titolari (${setup.starters.length}/${N})`
         : null;
 
-  const start = () => {
-    if (missing || readOnly) return;
+  const live = useLive((s) => s.live);
+  const setActiveTeam = useUI((s) => s.setActiveTeam);
+
+  const start = async () => {
+    if (missing || readOnly || !game || team?.id == null) return;
+    if (useLive.getState().live) {
+      toast('C\'è già una partita in corso', 'error');
+      return;
+    }
+    haptic.confirm();
+    void enterGameMode(); // va chiamata subito, dentro il gesto dell'utente
+    const roles = Object.fromEntries(all.map((p) => [p.id!, p.role]));
+    useLive.getState().set(
+      createLive({ teamId: team.id, gameId: game.id!, opponent: game.opponent, home: game.home, called: setup.called, starters: setup.starters, roles, now: Date.now() }),
+    );
+    await saveGame({ ...game, status: 'live' });
+    setSubstrate('live');
+  };
+
+  const resume = () => {
+    if (!live) return;
     haptic.confirm();
     void enterGameMode();
+    if (live.teamId !== team?.id) setActiveTeam(live.teamId);
     setSubstrate('live');
   };
 
   return (
     <>
       <ScreenHeader title="Partita" subtitle={team ? `${team.name} · ${team.season}` : 'Partita, convocati e quintetto'} />
-      {readOnly ? (
+      {live ? (
+        <LiveInProgress liveTeamId={live.teamId} sameTeam={live.teamId === team?.id} onResume={resume} />
+      ) : readOnly ? (
         <div className="mx-auto max-w-2xl px-4 pt-6">
           <EmptyState
             icon={<Archive size={30} />}
@@ -357,5 +383,49 @@ export function MatchSetupScreen() {
       )}
       <QuickGameSheet open={quick} teamId={team?.id ?? 0} onClose={() => setQuick(false)} onCreated={(id) => patch({ gameId: id })} />
     </>
+  );
+}
+
+/** Card "Partita in corso" con ripresa (il cronometro è calcolato dai timestamp salvati). */
+function LiveInProgress({ liveTeamId, sameTeam, onResume }: { liveTeamId: number; sameTeam: boolean; onResume: () => void }) {
+  const live = useLive((s) => s.live)!;
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const [liveTeam, setLiveTeam] = useState<import('@/db/types').Team | undefined>();
+  useEffect(() => {
+    void db.teams.get(liveTeamId).then(setLiveTeam);
+  }, [liveTeamId]);
+  const v = settle(live, now);
+  return (
+    <div className="mx-auto max-w-2xl px-4 pt-5">
+      <div className="anim-rise overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-br from-bar to-surface p-5 shadow-card">
+        <div className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-widest text-brand-text">
+          <Radio size={16} className="animate-pulse" /> Partita in corso
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <TeamLogo team={liveTeam} size={48} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-display text-[24px] font-bold leading-tight">
+              {live.home ? 'vs' : '@'} {live.opponent}
+            </div>
+            <div className="text-[13px] text-ink-muted">
+              {periodLabel(v.period)} · {mmss(v.remainingMs, 'ceil')} · {v.running ? 'cronometro in corso' : v.started ? 'cronometro fermo' : 'non ancora iniziata'}
+            </div>
+          </div>
+          <div className="font-display text-[34px] font-extrabold tabular">
+            {v.us}
+            <span className="mx-1 text-ink-faint">–</span>
+            {v.them}
+          </div>
+        </div>
+        {!sameTeam && liveTeam && <p className="mt-3 text-[13px] text-ink-muted">La partita in corso è di {liveTeam.name}: riprendendola diventa la squadra attiva.</p>}
+        <Button variant="primary" size="lg" className="mt-4 w-full" icon={<CirclePlay size={22} />} onClick={onResume}>
+          Riprendi partita
+        </Button>
+      </div>
+    </div>
   );
 }
