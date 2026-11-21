@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -15,15 +16,15 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png'],
       manifest: {
-        id: 'donbosco-basket-monitor',
-        name: 'Don Bosco Basket Monitor',
-        short_name: 'Don Bosco',
-        description: 'Minuti giocati e carico di fatica (INT) dei giocatori — Pallacanestro Don Bosco Livorno',
+        id: 'donbosco-basket-monitor', // invariato: mantiene l'identità dell'app già installata
+        name: 'Basket Monitor',
+        short_name: 'Basket Monitor',
+        description: 'Minuti giocati e carico di fatica (INT) dei giocatori, per più squadre',
         lang: 'it',
         dir: 'ltr',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#060D1F',
+        background_color: '#050f1a',
         theme_color: '#002855',
         categories: ['sports', 'utilities'],
         icons: [
@@ -39,6 +40,7 @@ export default defineConfig({
       },
     }),
   ],
+  test: { environment: 'node' },
   server: { host: true },
   preview: { host: true },
 });

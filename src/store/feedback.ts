@@ -13,6 +13,8 @@ export interface ConfirmOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  /** conferma forte: il pulsante si attiva solo digitando esattamente questo testo */
+  requireText?: string;
 }
 
 interface FeedbackState {

@@ -15,7 +15,7 @@ export function TabBar() {
   const setTab = useUI((s) => s.setTab);
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-navy/95 shadow-[0_-12px_30px_-16px_rgba(0,0,0,.9)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-bar/95 shadow-[0_-12px_30px_-16px_rgba(0,0,0,.9)] backdrop-blur"
       style={{ paddingBottom: 'var(--safe-bottom)' }}
     >
       <div className="mx-auto grid h-[var(--tabbar-h)] max-w-2xl grid-cols-4 px-2">
@@ -36,7 +36,7 @@ export function TabBar() {
               <span
                 className={cx(
                   'grid h-8 w-14 place-items-center rounded-full transition-all duration-300 ease-out',
-                  active ? 'bg-brand/20 text-brand' : 'text-ink-muted',
+                  active ? 'bg-brand/20 text-brand-text' : 'text-ink-muted',
                 )}
               >
                 <Icon size={22} strokeWidth={active ? 2.4 : 2} />

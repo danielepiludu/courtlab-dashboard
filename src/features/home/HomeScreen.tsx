@@ -1,27 +1,28 @@
 import { useMemo, useState } from 'react';
-import { CalendarPlus, CirclePlay, MapPin, Plane, Plus, Settings } from 'lucide-react';
+import { CalendarPlus, ChevronDown, CirclePlay, MapPin, Plane, Plus, Settings } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, Logo, SectionTitle } from '@/components/ui/misc';
-import { useGames } from '@/db/hooks';
+import { EmptyState, SectionTitle } from '@/components/ui/misc';
+import { TeamLogo } from '@/components/TeamLogo';
+import { useActiveTeam, useGames } from '@/db/hooks';
 import { newGame } from '@/db/repo';
 import { outcomeOf, type Game } from '@/db/types';
 import { fmtLong, parseISODate, relativeDay, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
-import { useUI } from '@/store/ui';
-import { APP } from '@/config';
+import { useSetup, useUI } from '@/store/ui';
+import { TeamSwitcherSheet } from '@/features/teams/TeamSwitcherSheet';
 import { GameFormSheet } from './GameFormSheet';
 import { GameRow } from './GameRow';
 import { MonthCalendar } from './MonthCalendar';
 
 const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 
-function NextGameCard({ game, onPrepare, onOpen }: { game: Game; onPrepare: () => void; onOpen: () => void }) {
+function NextGameCard({ game, onPrepare, onOpen, readOnly }: { game: Game; onPrepare: () => void; onOpen: () => void; readOnly: boolean }) {
   const rel = relativeDay(game.date);
   const isToday = game.date === todayISO();
   return (
-    <div className="anim-rise relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-navy via-[#0a2350] to-surface p-5 shadow-card">
+    <div className="anim-rise relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-bar to-surface p-5 shadow-card">
       {/* pallone decorativo */}
       <svg className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rotate-[18deg] opacity-[0.13]" viewBox="0 0 200 200" fill="none" stroke="#fff" strokeWidth="4">
         <circle cx="100" cy="100" r="94" />
@@ -29,13 +30,13 @@ function NextGameCard({ game, onPrepare, onOpen }: { game: Game; onPrepare: () =
       </svg>
       <div className="relative">
         <div className="flex items-center gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-widest ${isToday ? 'bg-brand text-white' : 'bg-white/10 text-ink'}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-widest ${isToday ? 'bg-brand text-on-brand' : 'bg-white/10 text-ink'}`}>
             {isToday ? 'Oggi si gioca' : 'Prossima partita'}
           </span>
           {!isToday && <span className="text-[13px] font-semibold text-accent-light">{rel}</span>}
         </div>
         <button onClick={onOpen} className="mt-3 block text-left">
-          <div className="font-display text-[15px] font-semibold uppercase tracking-[0.2em] text-ink-muted">{game.home ? 'Don Bosco vs' : 'In trasferta a'}</div>
+          <div className="font-display text-[15px] font-semibold uppercase tracking-[0.2em] text-ink-muted">{game.home ? 'In casa contro' : 'In trasferta a'}</div>
           <div className="font-display text-[34px] font-extrabold leading-[1.05] tracking-wide">{game.opponent}</div>
         </button>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-ink-muted">
@@ -45,9 +46,11 @@ function NextGameCard({ game, onPrepare, onOpen }: { game: Game; onPrepare: () =
             · {game.home ? <MapPin size={14} /> : <Plane size={14} />} {game.home ? 'Casa' : 'Trasferta'}
           </span>
         </div>
-        <Button variant="primary" size="lg" className="mt-4 w-full" icon={<CirclePlay size={22} />} onClick={onPrepare}>
-          Prepara la partita
-        </Button>
+        {!readOnly && (
+          <Button variant="primary" size="lg" className="mt-4 w-full" icon={<CirclePlay size={22} />} onClick={onPrepare}>
+            Prepara la partita
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -55,9 +58,13 @@ function NextGameCard({ game, onPrepare, onOpen }: { game: Game; onPrepare: () =
 
 export function HomeScreen() {
   const games = useGames();
+  const team = useActiveTeam();
+  const readOnly = !!team?.archived;
+  const teamId = team?.id ?? 0;
   const setTab = useUI((s) => s.setTab);
   const patchSetup = useUI((s) => s.patchSetup);
-  const setup = useUI((s) => s.setup);
+  const setup = useSetup();
+  const [switcher, setSwitcher] = useState(false);
   const [month, setMonth] = useState(() => firstOfMonth(new Date()));
   const [dir, setDir] = useState<1 | -1>(1);
   const [selected, setSelected] = useState(todayISO);
@@ -87,9 +94,25 @@ export function HomeScreen() {
   return (
     <>
       <ScreenHeader
-        left={<Logo size={44} />}
-        title={APP.team}
-        subtitle="Basket Monitor"
+        left={
+          <button
+            onClick={() => {
+              haptic.tap();
+              setSwitcher(true);
+            }}
+            aria-label="Cambia squadra"
+            className="-ml-1 flex min-w-0 flex-1 items-center gap-3 rounded-2xl py-1 pl-1 pr-2 text-left transition active:scale-[.98] active:bg-white/5"
+          >
+            <TeamLogo key={team?.id} team={team} size={44} className="anim-pop" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1">
+                <span className="truncate font-display text-[21px] font-bold leading-tight tracking-wide">{team?.name ?? ''}</span>
+                <ChevronDown size={18} className="shrink-0 text-ink-muted" />
+              </span>
+              <span className="block truncate text-[13px] font-medium text-ink-muted">Stagione {team?.season}</span>
+            </span>
+          </button>
+        }
         right={
           <button onClick={() => setSettings(true)} aria-label="Impostazioni" className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition hover:bg-white/5 active:scale-90">
             <Settings size={22} />
@@ -98,16 +121,18 @@ export function HomeScreen() {
       />
       <div className="mx-auto max-w-2xl px-4 pt-4">
         {games === undefined ? null : next ? (
-          <NextGameCard game={next} onPrepare={() => prepare(next)} onOpen={() => setEditing(next)} />
+          <NextGameCard game={next} readOnly={readOnly} onPrepare={() => prepare(next)} onOpen={() => setEditing(next)} />
         ) : (
           <EmptyState
             icon={<CalendarPlus size={30} />}
             title="Nessuna partita in programma"
-            text="Aggiungi le partite del girone per vederle nel calendario."
+            text={readOnly ? 'Nessuna partita futura in questa stagione archiviata.' : 'Aggiungi le partite del girone per vederle nel calendario.'}
             action={
-              <Button variant="primary" icon={<Plus size={20} />} onClick={() => setEditing(newGame(selected))}>
-                Nuova partita
-              </Button>
+              !readOnly && (
+                <Button variant="primary" icon={<Plus size={20} />} onClick={() => setEditing(newGame(teamId, selected))}>
+                  Nuova partita
+                </Button>
+              )
             }
           />
         )}
@@ -117,7 +142,7 @@ export function HomeScreen() {
             {[
               { l: 'Giocate', v: finished.length, c: 'text-ink' },
               { l: 'Vinte', v: wins, c: 'text-ok' },
-              { l: 'Perse', v: finished.length - wins - finished.filter((g) => outcomeOf(g) === 'D').length, c: 'text-brand' },
+              { l: 'Perse', v: finished.length - wins - finished.filter((g) => outcomeOf(g) === 'D').length, c: 'text-brand-text' },
             ].map((s) => (
               <div key={s.l} className="card py-2.5">
                 <div className={`font-display text-2xl font-bold leading-none ${s.c}`}>{s.v}</div>
@@ -149,9 +174,11 @@ export function HomeScreen() {
 
         <SectionTitle
           right={
-            <button onClick={() => setEditing(newGame(selected))} className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-bold text-accent-light active:scale-95">
-              <Plus size={16} /> Aggiungi
-            </button>
+            !readOnly && (
+              <button onClick={() => setEditing(newGame(teamId, selected))} className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-bold text-accent-light active:scale-95">
+                <Plus size={16} /> Aggiungi
+              </button>
+            )
           }
         >
           {selected === today ? 'Oggi' : fmtLong(selected, false)}
@@ -196,20 +223,23 @@ export function HomeScreen() {
         <div className="h-6" />
       </div>
 
+      {!readOnly && (
       <button
         onClick={() => {
           haptic.select();
-          setEditing(newGame(selected));
+          setEditing(newGame(teamId, selected));
         }}
         aria-label="Nuova partita"
-        className="fixed right-5 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-brand text-white shadow-[0_10px_30px_-8px_rgba(238,50,57,.9)] transition active:scale-90"
+        className="fixed right-5 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-brand text-on-brand shadow-brand-lg transition active:scale-90"
         style={{ bottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 16px)' }}
       >
         <Plus size={28} strokeWidth={2.6} />
       </button>
+      )}
 
-      <GameFormSheet game={editing} onClose={() => setEditing(null)} />
+      <GameFormSheet game={editing} readOnly={readOnly} onClose={() => setEditing(null)} />
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
+      <TeamSwitcherSheet open={switcher} onClose={() => setSwitcher(false)} />
     </>
   );
 }

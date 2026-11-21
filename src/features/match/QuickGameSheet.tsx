@@ -10,7 +10,7 @@ import { haptic } from '@/lib/haptics';
 import { toast } from '@/store/feedback';
 
 /** Crea al volo una partita con data e ora attuali. */
-export function QuickGameSheet({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: number) => void }) {
+export function QuickGameSheet({ open, teamId, onClose, onCreated }: { open: boolean; teamId: number; onClose: () => void; onCreated: (id: number) => void }) {
   const [opponent, setOpponent] = useState('');
   const [home, setHome] = useState(true);
   useEffect(() => {
@@ -22,7 +22,7 @@ export function QuickGameSheet({ open, onClose, onCreated }: { open: boolean; on
 
   const create = async () => {
     if (!opponent.trim()) return;
-    const id = await saveGame({ ...newGame(todayISO(), nowHHMM()), opponent, home, notes: 'Creata al volo' });
+    const id = await saveGame({ ...newGame(teamId, todayISO(), nowHHMM()), opponent, home, notes: 'Creata al volo' });
     haptic.confirm();
     toast('Partita creata e selezionata', 'success');
     onCreated(id);

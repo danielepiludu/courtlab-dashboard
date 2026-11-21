@@ -55,7 +55,7 @@ export function MonthCalendar({ month, dir, onMonth, onToday, games, selected, o
       </div>
       <div className="grid grid-cols-7 pb-1 text-center text-[11px] font-bold uppercase tracking-wider text-ink-faint">
         {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => (
-          <span key={i} className={i === 6 ? 'text-brand/70' : undefined}>
+          <span key={i} className={i === 6 ? 'text-brand-text/70' : undefined}>
             {d}
           </span>
         ))}
@@ -76,8 +76,8 @@ export function MonthCalendar({ month, dir, onMonth, onToday, games, selected, o
               }}
               className={cx(
                 'relative flex h-12 flex-col items-center justify-center rounded-xl text-[15px] font-semibold transition duration-150 active:scale-90',
-                isSel ? 'bg-accent text-white shadow-[0_6px_18px_-6px_rgba(25,118,210,.9)]' : gs.length ? 'bg-navy text-ink' : 'text-ink-muted hover:bg-white/5',
-                isToday && !isSel && 'ring-1 ring-inset ring-accent text-white',
+                isSel ? 'bg-accent text-on-accent shadow-select' : gs.length ? 'bg-bar text-ink' : 'text-ink-muted hover:bg-white/5',
+                isToday && !isSel && 'ring-1 ring-inset ring-accent text-ink',
               )}
             >
               {d}
@@ -88,7 +88,7 @@ export function MonthCalendar({ month, dir, onMonth, onToday, games, selected, o
                       key={g.id}
                       className={cx(
                         'h-1.5 w-1.5 rounded-full',
-                        g.status === 'finished' ? (outcomeOf(g) === 'W' ? 'bg-ok' : 'bg-ink-muted') : isSel ? 'bg-white' : 'bg-brand',
+                        g.status === 'finished' ? (outcomeOf(g) === 'W' ? 'bg-ok' : 'bg-ink-muted') : isSel ? 'bg-on-accent' : 'bg-brand',
                       )}
                     />
                   ))}

@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarPlus, Check, CirclePlay, MapPin, Plane, Star, Users, Zap } from 'lucide-react';
+import { Archive, CalendarPlus, Check, CirclePlay, MapPin, Plane, Star, Users, Zap } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { RoleBadge, STATUS_META } from '@/components/ui/Badges';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/misc';
-import { useGames, usePlayers } from '@/db/hooks';
+import { useActiveTeam, useGames, usePlayers } from '@/db/hooks';
+import { setTeamArchived } from '@/db/repo';
 import type { Game, Player } from '@/db/types';
 import { fmtDayMonth, relativeDay, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { enterGameMode } from '@/lib/device';
 import { cx } from '@/lib/cx';
 import { toast } from '@/store/feedback';
-import { useUI } from '@/store/ui';
+import { useSetup, useUI } from '@/store/ui';
 import { GAME } from '@/config';
 import { QuickGameSheet } from './QuickGameSheet';
 
@@ -21,7 +22,7 @@ const N = GAME.onCourt;
 function StepTitle({ n, title, right }: { n: number; title: string; right?: React.ReactNode }) {
   return (
     <div className="mb-3 mt-7 flex items-center gap-3 px-1">
-      <span className="grid h-7 w-7 place-items-center rounded-full bg-brand font-display text-[15px] font-bold text-white">{n}</span>
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-brand font-display text-[15px] font-bold text-on-brand">{n}</span>
       <h2 className="flex-1 font-display text-[19px] font-bold uppercase tracking-[0.1em]">{title}</h2>
       {right}
     </div>
@@ -39,11 +40,11 @@ function GameCard({ g, selected, onClick }: { g: Game; selected: boolean; onClic
       )}
     >
       {selected && (
-        <span className="anim-pop absolute right-2.5 top-2.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-white">
+        <span className="anim-pop absolute right-2.5 top-2.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-on-accent">
           <Check size={15} strokeWidth={3} />
         </span>
       )}
-      <div className={cx('text-[12px] font-bold uppercase tracking-widest', today ? 'text-brand' : 'text-ink-muted')}>{today ? 'Oggi' : relativeDay(g.date)}</div>
+      <div className={cx('text-[12px] font-bold uppercase tracking-widest', today ? 'text-brand-text' : 'text-ink-muted')}>{today ? 'Oggi' : relativeDay(g.date)}</div>
       <div className="mt-1 truncate pr-6 font-display text-[22px] font-bold leading-tight">{g.opponent || 'Avversario'}</div>
       <div className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-muted">
         {g.home ? <MapPin size={13} /> : <Plane size={13} />}
@@ -69,7 +70,7 @@ function CallTile({ p, called, disabled, onClick }: { p: Player; called: boolean
         <span
           className={cx(
             'absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 transition',
-            called ? 'anim-pop border-surface bg-accent text-white' : 'border-ink-faint bg-surface',
+            called ? 'anim-pop border-surface bg-accent text-on-accent' : 'border-ink-faint bg-surface',
           )}
         >
           {called && <Check size={13} strokeWidth={3.5} />}
@@ -78,7 +79,7 @@ function CallTile({ p, called, disabled, onClick }: { p: Player; called: boolean
       <div className="min-w-0 flex-1">
         <b className="block truncate text-[15px] leading-tight">{p.name.split(' ')[0]}</b>
         <div className="mt-1 flex items-center gap-1.5">
-          <span className="font-display text-[16px] font-bold leading-none text-brand">{p.number !== '' ? `#${p.number}` : '–'}</span>
+          <span className="font-display text-[16px] font-bold leading-none text-brand-text">{p.number !== '' ? `#${p.number}` : '–'}</span>
           <RoleBadge role={p.role} className="h-5 min-w-[28px] text-[12px]" />
           {p.status !== 'available' && <i className={cx('h-2 w-2 shrink-0 rounded-full', STATUS_META[p.status].dot)} title={STATUS_META[p.status].label} />}
         </div>
@@ -90,7 +91,9 @@ function CallTile({ p, called, disabled, onClick }: { p: Player; called: boolean
 export function MatchSetupScreen() {
   const games = useGames();
   const players = usePlayers();
-  const setup = useUI((s) => s.setup);
+  const setup = useSetup();
+  const team = useActiveTeam();
+  const readOnly = !!team?.archived;
   const patch = useUI((s) => s.patchSetup);
   const setSubstrate = useUI((s) => s.setSubstrate);
   const setTab = useUI((s) => s.setTab);
@@ -163,7 +166,7 @@ export function MatchSetupScreen() {
         : null;
 
   const start = () => {
-    if (missing) return;
+    if (missing || readOnly) return;
     haptic.confirm();
     void enterGameMode();
     setSubstrate('live');
@@ -171,7 +174,22 @@ export function MatchSetupScreen() {
 
   return (
     <>
-      <ScreenHeader title="Partita" subtitle="Partita, convocati e quintetto titolare" />
+      <ScreenHeader title="Partita" subtitle={team ? `${team.name} · ${team.season}` : 'Partita, convocati e quintetto'} />
+      {readOnly ? (
+        <div className="mx-auto max-w-2xl px-4 pt-6">
+          <EmptyState
+            icon={<Archive size={30} />}
+            title="Stagione archiviata"
+            text="Le squadre archiviate sono consultabili in sola lettura. Riattivala per giocare nuove partite."
+            action={
+              <Button variant="primary" onClick={() => team?.id && void setTeamArchived(team.id, false).then(() => toast('Squadra riattivata', 'success'))}>
+                Riattiva squadra
+              </Button>
+            }
+          />
+        </div>
+      ) : (
+      <>
       <div className="mx-auto max-w-2xl px-4 pb-32">
         {/* 1 · Partita */}
         <StepTitle
@@ -299,13 +317,13 @@ export function MatchSetupScreen() {
                   )}
                 >
                   {st && (
-                    <span className="anim-pop absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-white">
+                    <span className="anim-pop absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-on-accent">
                       <Star size={13} fill="currentColor" />
                     </span>
                   )}
                   <Avatar player={p} size={64} />
                   <div className="mt-1.5 flex max-w-full items-baseline gap-1 px-1">
-                    <span className="font-display text-[16px] font-bold text-brand">{p.number}</span>
+                    <span className="font-display text-[16px] font-bold text-brand-text">{p.number}</span>
                     <b className="truncate text-[14px]">{p.name.split(' ')[0]}</b>
                   </div>
                   <span className="text-[11px] font-bold text-ink-muted">{p.role}</span>
@@ -335,7 +353,9 @@ export function MatchSetupScreen() {
         </div>
       </div>
 
-      <QuickGameSheet open={quick} onClose={() => setQuick(false)} onCreated={(id) => patch({ gameId: id })} />
+      </>
+      )}
+      <QuickGameSheet open={quick} teamId={team?.id ?? 0} onClose={() => setQuick(false)} onCreated={(id) => patch({ gameId: id })} />
     </>
   );
 }

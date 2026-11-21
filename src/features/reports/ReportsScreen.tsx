@@ -3,7 +3,7 @@ import { ClipboardList, FileText, MapPin, Plane } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Sheet } from '@/components/ui/Sheet';
 import { EmptyState } from '@/components/ui/misc';
-import { useGames } from '@/db/hooks';
+import { useActiveTeam, useGames } from '@/db/hooks';
 import { OUTCOME_LABEL, outcomeOf, type Game } from '@/db/types';
 import { fmtLong, fmtMedium } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
@@ -21,7 +21,7 @@ function ReportRow({ g, onClick }: { g: Game; onClick: () => void }) {
           <span className="mr-1 text-ink-muted">{g.home ? 'vs' : '@'}</span>
           {g.opponent}
         </div>
-        <div className={cx('text-[13px] font-semibold', o === 'W' ? 'text-ok' : o === 'L' ? 'text-brand' : 'text-ink-muted')}>{OUTCOME_LABEL[o]}</div>
+        <div className={cx('text-[13px] font-semibold', o === 'W' ? 'text-ok' : o === 'L' ? 'text-brand-text' : 'text-ink-muted')}>{OUTCOME_LABEL[o]}</div>
       </div>
       <div className="font-display text-[32px] font-extrabold leading-none tabular">
         {g.scoreUs ?? 0}
@@ -35,6 +35,7 @@ function ReportRow({ g, onClick }: { g: Game; onClick: () => void }) {
 
 export function ReportsScreen() {
   const games = useGames();
+  const team = useActiveTeam();
   const [open, setOpen] = useState<Game | null>(null);
   const finished = (games ?? []).filter((g) => g.status === 'finished').reverse();
   const w = finished.filter((g) => outcomeOf(g) === 'W').length;
@@ -43,7 +44,7 @@ export function ReportsScreen() {
 
   return (
     <>
-      <ScreenHeader title="Resoconti" subtitle={finished.length ? `${finished.length} partite concluse · ${w}V ${l}P` : 'Storico delle partite concluse'} />
+      <ScreenHeader title="Resoconti" subtitle={finished.length ? `${team?.name ?? ''} · ${w}V ${l}P` : team ? `${team.name} · ${team.season}` : 'Storico delle partite concluse'} />
       <div className="mx-auto max-w-2xl px-4 pt-4">
         {games === undefined ? null : finished.length === 0 ? (
           <EmptyState icon={<ClipboardList size={30} />} title="Nessun resoconto" text="Al termine di ogni partita il resoconto completo verrà salvato qui." />
@@ -80,9 +81,9 @@ export function ReportsScreen() {
       <Sheet open={!!open} onClose={() => setOpen(null)} title={open ? `${open.home ? 'vs' : '@'} ${open.opponent}` : ''} subtitle={open ? fmtLong(open.date) : undefined}>
         {open && (
           <>
-            <div className="flex items-center justify-center gap-6 rounded-2xl bg-navy p-5">
+            <div className="flex items-center justify-center gap-6 rounded-2xl bg-bar p-5">
               <div className="text-center">
-                <div className="text-[12px] font-bold uppercase tracking-widest text-ink-muted">Don Bosco</div>
+                <div className="max-w-[140px] truncate text-[12px] font-bold uppercase tracking-widest text-ink-muted">{team?.name}</div>
                 <div className="font-display text-6xl font-extrabold tabular">{open.scoreUs ?? 0}</div>
               </div>
               <span className="font-display text-3xl text-ink-faint">–</span>

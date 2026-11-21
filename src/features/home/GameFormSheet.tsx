@@ -13,12 +13,14 @@ import { fmtLong } from '@/lib/dates';
 
 interface Props {
   game: Game | null;
+  /** squadra archiviata: solo consultazione */
+  readOnly?: boolean;
   onClose: () => void;
   onSaved?: (id: number) => void;
 }
 
 /** Crea / modifica / elimina una partita del calendario. */
-export function GameFormSheet({ game, onClose, onSaved }: Props) {
+export function GameFormSheet({ game, readOnly = false, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<Game | null>(game);
   const [busy, setBusy] = useState(false);
   const games = useGames();
@@ -66,9 +68,10 @@ export function GameFormSheet({ game, onClose, onSaved }: Props) {
     <Sheet
       open={!!game}
       onClose={onClose}
-      title={draft?.id ? 'Modifica partita' : 'Nuova partita'}
+      title={readOnly ? 'Partita' : draft?.id ? 'Modifica partita' : 'Nuova partita'}
       subtitle={draft?.date ? fmtLong(draft.date) : undefined}
       footer={
+        !readOnly && (
         <div className="flex gap-3">
           {draft?.id && (
             <Button variant="danger" size="lg" className="px-4" onClick={remove} aria-label="Elimina partita" icon={<Trash size={20} />} />
@@ -77,10 +80,11 @@ export function GameFormSheet({ game, onClose, onSaved }: Props) {
             {draft?.id ? 'Salva modifiche' : 'Aggiungi partita'}
           </Button>
         </div>
+        )
       }
     >
       {draft && (
-        <>
+        <fieldset disabled={readOnly} className="min-w-0">
           {finished && (
             <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-night/50 p-4">
               <div>
@@ -136,7 +140,7 @@ export function GameFormSheet({ game, onClose, onSaved }: Props) {
               onChange={(e) => up({ notes: e.target.value })}
             />
           </Field>
-        </>
+        </fieldset>
       )}
     </Sheet>
   );

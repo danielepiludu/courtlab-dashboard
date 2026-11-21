@@ -1,3 +1,24 @@
+export interface Team {
+  id?: number;
+  name: string;
+  /** es. "2026/27" */
+  season: string;
+  /**
+   * Logo come data URL (PNG/JPEG) salvato in locale, oppure `builtin:donbosco`
+   * per il logo incluso nell'app (public/logo.png). Facoltativo.
+   */
+  logo?: string;
+  /** colore primario #rrggbb */
+  primary: string;
+  /** colore secondario #rrggbb */
+  secondary: string;
+  archived: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const BUILTIN_LOGO = 'builtin:donbosco';
+
 export type Role = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 export const ROLES: Role[] = ['PG', 'SG', 'SF', 'PF', 'C'];
 export const ROLE_LABEL: Record<Role, string> = {
@@ -13,6 +34,7 @@ export const STATUSES: PlayerStatus[] = ['available', 'doubtful', 'injured'];
 
 export interface Player {
   id?: number;
+  teamId: number;
   name: string;
   /** Numero di maglia come stringa per distinguere "0" da "00" */
   number: string;
@@ -34,6 +56,7 @@ export type GameStatus = 'scheduled' | 'live' | 'finished';
 
 export interface Game {
   id?: number;
+  teamId: number;
   /** YYYY-MM-DD */
   date: string;
   /** HH:MM */

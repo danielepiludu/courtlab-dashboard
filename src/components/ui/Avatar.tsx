@@ -20,7 +20,7 @@ export function Avatar({ player, size = 52, className, ring }: AvatarProps) {
     <div
       style={{ width: size, height: size }}
       className={cx(
-        'relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-navy to-surface-3 font-display font-bold text-ink',
+        'relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-bar to-surface-3 font-display font-bold text-ink',
         ring && 'ring-2 ring-line',
         className,
       )}
