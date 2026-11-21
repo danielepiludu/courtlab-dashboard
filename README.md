@@ -13,6 +13,15 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 - I colori sono **variabili CSS** generate a runtime dai due colori della squadra (`src/theme/palette.ts`): sfondi sempre scuri, contrasto testo ≥ 4.5:1, correzione automatica dei colori troppo chiari o troppo simili. Le regole sono verificate da test automatici su centinaia di combinazioni.
 - Caricando un logo, i due colori dominanti vengono proposti in automatico (`src/theme/extract.ts`).
 
+## Schermata partita
+
+- Mezzo campo FIBA in SVG su **parquet**, canestro a destra, **logo della squadra attiva nel cerchio di centrocampo**, pitturato nel colore della squadra con bordo d'accento.
+- 5 in campo: 2 lunghi nel pitturato, 3 esterni fuori dall'arco (punta e ali). Le posizioni sono verificate da test (mai sovrapposte).
+- Colonna **REST** a sinistra con tempo reale di riposo, che scorre anche a cronometro fermo.
+- Timer a timestamp: tutto fermo fino al primo Start; Q1-Q4 da 10:00, OT da 5:00; a fine periodo si ferma a 00:00 e Start avvia il successivo.
+- Cambi: selezione multipla, "Conferma cambio" solo con numeri uguali (1-1, 2-2…), animazione, funziona anche a cronometro fermo.
+- Lo stato si salva a ogni azione: chiudendo l'app per sbaglio la partita riprende esattamente da dove era. Il tasto Indietro apre il menu invece di uscire.
+
 ## Comandi
 
 ```bash
@@ -81,7 +90,8 @@ npx cap open android      # Android Studio → Build → Build APK
 │       ├── home/                  calendario, prossima partita, form partita
 │       ├── players/               lista con filtri, scheda giocatore
 │       ├── match/                 selettore partita, convocati, quintetto
-│       ├── live/                  secondo substrato (schermata partita)
+│       ├── live/                  secondo substrato: liveModel (timer a timestamp, + test), campo SVG,
+│       │                          geometria posizioni (+ test), card giocatori, schermata partita
 │       └── reports/               storico resoconti
 └── .github/workflows/deploy.yml   build + GitHub Pages
 ```
@@ -89,6 +99,6 @@ npx cap open android      # Android Studio → Build → Build APK
 ## Stato delle fasi
 
 - [x] **Fase 1** — scaffolding, multi-squadra con tema dinamico, primo substrato (Home, Giocatori, Partita, Resoconti), persistenza, backup
-- [ ] **Fase 2** — schermata partita: campo, card, REST, timer, cambi con conferma
+- [x] **Fase 2** — schermata partita: campo in parquet con logo della squadra, card, REST, timer, cambi con conferma
 - [ ] **Fase 3** — motore INT con test automatici
 - [ ] **Fase 4** — resoconto finale, PDF, tab Resoconti completa
