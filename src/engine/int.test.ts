@@ -1,73 +1,84 @@
 import { describe, expect, it } from 'vitest';
 import { INT_CONFIG } from './intConfig';
-import { decayBench, decayCourtStopped, minutesToReach, ratePerMin, rise } from './int';
+import { combineInt, decayBench, decayCourtStopped, fmtInt, intAfterPlay, lambdaPerMin, minutesToReach, residual, riseAcute, tauBenchMin, unriseAcute } from './int';
 
 const MIN = 60_000;
 
 describe('a) in campo, cronometro in corso', () => {
-  it('velocità = (4 + 0,5 × min consecutivi) × (1 + 0,01 × min totali)', () => {
-    expect(ratePerMin(0, 0)).toBeCloseTo(4, 10);
-    expect(ratePerMin(6 * MIN, 20 * MIN)).toBeCloseTo((4 + 0.5 * 6) * (1 + 0.01 * 20), 10);
+  it('da riposato: ≈0,37 dopo 5′, ≈0,67 dopo 10′, ≈0,86 dopo 15′', () => {
+    expect(intAfterPlay(5 * MIN)).toBeCloseTo(0.37, 2);
+    expect(intAfterPlay(10 * MIN)).toBeCloseTo(0.67, 2);
+    expect(intAfterPlay(15 * MIN)).toBeCloseTo(0.86, 2);
+    expect(minutesToReach(0.5)).toBeGreaterThan(6.5);
+    expect(minutesToReach(0.5)).toBeLessThan(8);
   });
-  it('valori da INT 0 e 0 minuti totali (integrale esatto della formula)', () => {
-    // 4t + 0,27t² + 0,005t³/3
-    expect(rise(0, 0, 0, 5 * MIN)).toBeCloseTo(26.96, 1);
-    expect(rise(0, 0, 0, 10 * MIN)).toBeCloseTo(68.67, 1);
-    expect(minutesToReach(100)).toBeCloseTo(12.9, 1);
+  it('cresce sempre: quasi costante nei primi 8 minuti, poi rallenta avvicinandosi a 1 senza raggiungerlo', () => {
+    let prev = 0;
+    for (let m = 1; m <= 40; m++) {
+      const v = intAfterPlay(m * MIN);
+      const step = v - prev;
+      expect(v).toBeGreaterThan(prev);
+      expect(v).toBeLessThan(1);
+      if (m <= 8) expect(step).toBeGreaterThan(0.06);
+      if (m >= 16) expect(step).toBeLessThan(0.03);
+      prev = v;
+    }
   });
-  it('valori attesi della specifica (~32 a 5′, ~65 a 10′, 100 a 14-15′): stesso ordine di grandezza', () => {
-    // La formula indicata dà 27 / 69 / 100 a 12,9′: le stime della specifica sono approssimate.
-    expect(rise(0, 0, 0, 5 * MIN)).toBeGreaterThan(25);
-    expect(rise(0, 0, 0, 5 * MIN)).toBeLessThan(35);
-    expect(rise(0, 0, 0, 10 * MIN)).toBeGreaterThan(60);
-    expect(rise(0, 0, 0, 10 * MIN)).toBeLessThan(72);
-    expect(minutesToReach(100)).toBeGreaterThan(12);
-    expect(minutesToReach(100)).toBeLessThan(15);
+  it('più minuti consecutivi o totali alle spalle → sale più in fretta', () => {
+    expect(lambdaPerMin(6 * MIN, 0)).toBeGreaterThan(lambdaPerMin(0, 0));
+    expect(lambdaPerMin(0, 25 * MIN)).toBeGreaterThan(lambdaPerMin(0, 0));
+    expect(riseAcute(0, 0, 25 * MIN, 5 * MIN)).toBeGreaterThan(riseAcute(0, 0, 0, 5 * MIN));
   });
-  it('mai oltre 100', () => {
-    expect(rise(0, 0, 0, 40 * MIN)).toBe(100);
-    expect(rise(95, 10 * MIN, 30 * MIN, 5 * MIN)).toBe(100);
+  it('spezzare il tempo in tratti dà lo stesso risultato (ricostruzione esatta)', () => {
+    const tutto = riseAcute(0.1, 0, 0, 7 * MIN);
+    const a = riseAcute(0.1, 0, 0, 3 * MIN);
+    expect(riseAcute(a, 3 * MIN, 3 * MIN, 4 * MIN)).toBeCloseTo(tutto, 12);
   });
-  it('spezzare il tempo in più tratti dà lo stesso risultato (ricostruzione esatta dopo una chiusura)', () => {
-    const tutto = rise(0, 0, 0, 7 * MIN);
-    const a = rise(0, 0, 0, 3 * MIN);
-    const b = rise(a, 3 * MIN, 3 * MIN, 4 * MIN);
-    expect(b).toBeCloseTo(tutto, 9);
-  });
-  it('i minuti totali già giocati fanno salire più in fretta', () => {
-    expect(rise(0, 0, 20 * MIN, 5 * MIN)).toBeGreaterThan(rise(0, 0, 0, 5 * MIN));
-  });
-});
-
-describe('b) in campo, cronometro fermo: scende piano (τ = 15 min reali)', () => {
-  it('dopo 15 minuti reali resta il 36,8%', () => {
-    expect(decayCourtStopped(50, 15 * MIN)).toBeCloseTo(50 * Math.exp(-1), 6);
-  });
-  it('un minuto di timeout fa scendere poco', () => {
-    expect(decayCourtStopped(60, MIN)).toBeCloseTo(60 * Math.exp(-1 / 15), 6);
-    expect(60 - decayCourtStopped(60, MIN)).toBeLessThan(4);
+  it('la correzione all\'indietro (−5 s) annulla quella in avanti', () => {
+    const a = riseAcute(0.4, 2 * MIN, 9 * MIN, 5000);
+    expect(unriseAcute(a, 2 * MIN + 5000, 9 * MIN + 5000, 5000)).toBeCloseTo(0.4, 12);
   });
 });
 
-describe('c) in panchina: scende in tempo reale (τ = 6 min reali)', () => {
-  it('da 80, dopo 6 minuti reali ≈ 29', () => {
-    expect(decayBench(80, 6 * MIN)).toBeCloseTo(29.43, 1);
-    expect(Math.round(decayBench(80, 6 * MIN))).toBe(29);
-  });
-  it('scende più in fretta che in campo a cronometro fermo', () => {
-    expect(decayBench(80, 3 * MIN)).toBeLessThan(decayCourtStopped(80, 3 * MIN));
+describe('b) in campo, cronometro fermo (tempi morti)', () => {
+  it('scende piano: τ 15 minuti reali', () => {
+    expect(decayCourtStopped(0.6, 15 * MIN)).toBeCloseTo(0.6 * Math.exp(-1), 9);
+    expect(0.6 - decayCourtStopped(0.6, MIN)).toBeLessThan(0.05);
   });
 });
 
-describe('regole', () => {
-  it('INT sempre tra 0 e 100', () => {
-    expect(rise(-20, 0, 0, 0)).toBe(0);
-    expect(rise(150, 0, 0, 0)).toBe(100);
-    expect(decayBench(-5, MIN)).toBe(0);
-    expect(decayBench(Number.NaN, MIN)).toBe(0);
+describe('c) in panchina (recupero)', () => {
+  it('da 0,8 con 10 minuti giocati, dopo 6 minuti reali ≈ 0,29', () => {
+    expect(tauBenchMin(10 * MIN)).toBeCloseTo(6, 9);
+    expect(decayBench(0.8, 6 * MIN, 10 * MIN)).toBeCloseTo(0.294, 3);
+  });
+  it('chi ha giocato di più recupera più lentamente', () => {
+    expect(decayBench(0.8, 4 * MIN, 30 * MIN)).toBeGreaterThan(decayBench(0.8, 4 * MIN, 5 * MIN));
+  });
+  it('in panchina si recupera più che a cronometro fermo in campo', () => {
+    expect(decayBench(0.8, 3 * MIN, 10 * MIN)).toBeLessThan(decayCourtStopped(0.8, 3 * MIN));
+  });
+});
+
+describe('residuo e regole', () => {
+  it('il residuo cresce con i minuti giocati, fino al massimo', () => {
+    expect(residual(0)).toBe(0);
+    expect(residual(20 * MIN)).toBeCloseTo(0.1, 9);
+    expect(residual(200 * MIN)).toBe(INT_CONFIG.residualMax);
+  });
+  it('a fine recupero l\'INT non torna a 0 se si è giocato molto', () => {
+    expect(combineInt(decayBench(0.9, 60 * MIN, 30 * MIN), 30 * MIN)).toBeGreaterThan(0.15);
+  });
+  it('INT sempre tra 0 e 1', () => {
+    expect(combineInt(-3, 0)).toBe(0);
+    expect(combineInt(7, 500 * MIN)).toBe(1);
+    expect(combineInt(Number.NaN, 0)).toBe(0);
+  });
+  it('formato italiano a due decimali', () => {
+    expect(fmtInt(0.654)).toBe('0,65');
+    expect(fmtInt(1.2)).toBe('1,00');
   });
   it('parametri presi dal file di configurazione', () => {
-    const cfg = { ...INT_CONFIG, baseRate: 8 };
-    expect(rise(0, 0, 0, MIN, cfg)).toBeGreaterThan(rise(0, 0, 0, MIN));
+    expect(intAfterPlay(5 * MIN, { ...INT_CONFIG, riseRate: 0.14 })).toBeGreaterThan(intAfterPlay(5 * MIN));
   });
 });

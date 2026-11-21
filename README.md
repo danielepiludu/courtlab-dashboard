@@ -26,14 +26,23 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 
 ## Motore INT (Fase 3)
 
-Funzioni pure in `src/engine/int.ts`, parametri in `src/engine/intConfig.ts`, test in `src/engine/int.test.ts`.
+L'INT misura il **carico di fatica dello stint** su scala **0–1**: non solo quanto un giocatore resta in campo, ma quanto quel tempo gli costa e quanto recupera. Funzioni pure in `src/engine/int.ts`, parametri e spiegazione in `src/engine/intConfig.ts`, test in `src/engine/int.test.ts`.
 
-- **a) In campo, cronometro in corso** (sale): `punti/min = (4 + 0,5 × min consecutivi) × (1 + 0,01 × min totali)`, integrata in modo esatto (la velocità cresce durante il tratto). Con INT 0 e 0 minuti: 27 dopo 5′, 69 dopo 10′, 100 a circa 12′54″.
-- **b) In campo, cronometro fermo** (scende piano): `INT × exp(−t / 15 min reali)`.
-- **c) In panchina** (tempo reale, anche a cronometro fermo): `INT_uscita × exp(−t / 6 min reali)` — da 80, dopo 6′ ≈ 29.
-- INT sempre tra 0 e 100; i minuti totali non si azzerano; minuti consecutivi azzerati all'uscita; chi rientra riparte dal valore recuperato.
-- Lo stato salvato contiene valori e istanti di ingresso/uscita: dopo una chiusura l'INT si ricostruisce esattamente. Ogni 30 s viene registrato un campione per il grafico del resoconto.
-- **Vista debug nascosta**: nella schermata partita tieni premuto il cronometro per circa 1 secondo.
+Basi dalla letteratura (le stesse citate da 5in.app):
+- **Stojanović et al., 2018** — il basket è intermittente: il carico cresce col tempo di gioco *effettivo*, non con i tempi morti.
+- **Pérez-Chao et al., 2021** — i minuti accumulati riducono i picchi di prestazione: chi ha giocato molto si affatica prima e recupera più lentamente.
+- **Gómez et al., 2016** — le sostituzioni servono a recuperare.
+
+Modello (carico acuto A + residuo R):
+- **a) in campo, cronometro in corso**: `dA/dt = 0,07 · (1 + 0,08·min consecutivi) · (1 + 0,015·min totali) · (1 − A)` (soluzione esatta).
+- **b) in campo, cronometro fermo**: `A · exp(−t / 15′)` (tempo reale).
+- **c) in panchina**: `A_uscita · exp(−t / τ)`, con `τ = 5′ · (1 + 0,02·min totali)`: più minuti giocati, recupero più lento.
+- **residuo** `R = min(0,3; 0,005·min totali)`: fatica che non si smaltisce durante la partita.
+- **INT = R + (1 − R) · A**, sempre tra 0 e 1. Da riposato: **0,37 dopo 5′, 0,67 dopo 10′, 0,86 dopo 15′** di gioco consecutivo; non arriva mai a 1.
+
+Grafica: anello attorno alla foto e barra a gradiente **bianco → giallo → arancio → rosso** (soglie 0,35 · 0,65 · 0,80), freccia di tendenza (sale / cala piano / recupera), livello (Fresco, Attivo, Affaticato, Da cambiare); sopra 0,80 l'anello pulsa.
+
+Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una chiusura l'INT si ricostruisce esattamente. Ogni 30 s viene registrato un campione per il grafico del resoconto. **Vista debug nascosta**: tieni premuto il cronometro per circa 1 secondo.
 
 ## Comandi
 

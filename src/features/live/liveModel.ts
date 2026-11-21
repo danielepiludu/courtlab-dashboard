@@ -8,7 +8,7 @@
 import { GAME } from '@/config';
 import type { Role } from '@/db/types';
 import { INT_CONFIG } from '@/engine/intConfig';
-import { clampInt, decayBench, decayCourtStopped, ratePerMin, rise } from '@/engine/int';
+import { combineInt, decayBench, decayCourtStopped, riseAcute, unriseAcute } from '@/engine/int';
 
 export interface PlayerLive {
   id: number;
@@ -22,11 +22,12 @@ export interface PlayerLive {
   /** istante reale di inizio della panchina attuale (null se in campo o partita non ancora iniziata) */
   restSince: number | null;
   /**
-   * INT: per chi è in campo è il valore assestato a `settledAt`;
-   * per chi è in panchina è il valore all'uscita (poi decade in tempo reale da `restSince`).
+   * Carico acuto (0–1): per chi è in campo è il valore assestato a `settledAt`;
+   * per chi è in panchina è il valore all'uscita (poi recupera in tempo reale da `restSince`).
+   * L'INT mostrato combina il carico acuto con il residuo dei minuti giocati (vedi engine/int.ts).
    */
-  int: number;
-  /** INT massimo raggiunto */
+  acute: number;
+  /** INT massimo raggiunto (0–1) */
   peak: number;
 }
 
@@ -87,7 +88,13 @@ export interface LiveState {
 /** Completa uno stato salvato da una versione precedente (campi INT mancanti). */
 export function normalizeLive(s: LiveState): LiveState {
   const players: Record<number, PlayerLive> = {};
-  for (const [k, p] of Object.entries(s.players)) players[+k] = { ...p, int: p.int ?? 0, peak: p.peak ?? 0 };
+  for (const [k, p] of Object.entries(s.players)) {
+    // versioni precedenti: `int` su scala 0–100
+    const old = p as PlayerLive & { int?: number };
+    const acute = p.acute ?? (old.int != null ? Math.min(1, old.int / 100) : 0);
+    const peak = p.peak != null && p.peak > 1 ? p.peak / 100 : (p.peak ?? 0);
+    players[+k] = { ...p, acute, peak };
+  }
   const startedAt = s.startedAt ?? (s.started ? (s.events.find((e) => e.type === 'start')?.t ?? s.settledAt) : null);
   return { ...s, players, startedAt, nextSampleAt: s.nextSampleAt ?? (startedAt != null ? s.settledAt : null), samples: s.samples ?? [] };
 }
@@ -124,7 +131,7 @@ export function createLive(p: {
   const players: Record<number, PlayerLive> = {};
   for (const id of p.called) {
     const on = p.starters.includes(id);
-    players[id] = { id, onCourt: on, playedMs: 0, stintMs: 0, entries: on ? 1 : 0, restSince: null, int: 0, peak: 0 };
+    players[id] = { id, onCourt: on, playedMs: 0, stintMs: 0, entries: on ? 1 : 0, restSince: null, acute: 0, peak: 0 };
   }
   return {
     v: 1,
@@ -156,14 +163,20 @@ export function createLive(p: {
  * a) in campo e cronometro in corso: sale;  b) in campo e cronometro fermo: scende piano;
  * c) in panchina: scende dal valore di uscita, in tempo reale (anche a cronometro fermo).
  */
-export function playerIntAt(p: PlayerLive, s: LiveState, t: number): number {
-  if (!s.started) return clampInt(p.int);
-  if (!p.onCourt) return p.restSince != null ? decayBench(p.int, t - p.restSince) : clampInt(p.int);
+export function playerAcuteAt(p: PlayerLive, s: LiveState, t: number): { acute: number; playedMs: number } {
+  if (!s.started) return { acute: p.acute, playedMs: p.playedMs };
+  if (!p.onCourt) return { acute: p.restSince != null ? decayBench(p.acute, t - p.restSince, p.playedMs) : p.acute, playedMs: p.playedMs };
   const dt = Math.max(0, t - s.settledAt);
-  if (!s.running) return decayCourtStopped(p.int, dt);
+  if (!s.running) return { acute: decayCourtStopped(p.acute, dt), playedMs: p.playedMs };
   const game = Math.min(dt, s.remainingMs);
-  const up = rise(p.int, p.stintMs, p.playedMs, game);
-  return dt > game ? decayCourtStopped(up, dt - game) : up;
+  const up = riseAcute(p.acute, p.stintMs, p.playedMs, game);
+  return { acute: dt > game ? decayCourtStopped(up, dt - game) : up, playedMs: p.playedMs + game };
+}
+
+/** INT (0–1) all'istante `t`. */
+export function playerIntAt(p: PlayerLive, s: LiveState, t: number): number {
+  const { acute, playedMs } = playerAcuteAt(p, s, t);
+  return combineInt(acute, playedMs);
 }
 
 /** INT attuale (da usare su uno stato già assestato a `now`). */
@@ -173,7 +186,7 @@ function sampleAt(s: LiveState, t: number): IntSample {
   const v: Record<number, number> = {};
   const on: number[] = [];
   for (const [k, p] of Object.entries(s.players)) {
-    v[+k] = Math.round(playerIntAt(p, s, t) * 10) / 10;
+    v[+k] = Math.round(playerIntAt(p, s, t) * 1000) / 1000;
     if (p.onCourt) on.push(+k);
   }
   return { t, v, on };
@@ -199,7 +212,7 @@ export function settle(s: LiveState, now: number): LiveState {
   if (!s.running) {
     if (!s.started) return { ...s, settledAt: now };
     const players: Record<number, PlayerLive> = {};
-    for (const [k, p] of Object.entries(s.players)) players[+k] = p.onCourt ? { ...p, int: decayCourtStopped(p.int, dt) } : p;
+    for (const [k, p] of Object.entries(s.players)) players[+k] = p.onCourt ? { ...p, acute: decayCourtStopped(p.acute, dt) } : p;
     return { ...s, players, settledAt: now, samples, nextSampleAt };
   }
   const game = Math.min(dt, s.remainingMs);
@@ -210,9 +223,9 @@ export function settle(s: LiveState, now: number): LiveState {
       players[+k] = p;
       continue;
     }
-    const up = rise(p.int, p.stintMs, p.playedMs, game);
-    const int = dt > game ? decayCourtStopped(up, dt - game) : up;
-    players[+k] = { ...p, playedMs: p.playedMs + game, stintMs: p.stintMs + game, int, peak: Math.max(p.peak, up) };
+    const up = riseAcute(p.acute, p.stintMs, p.playedMs, game);
+    const acute = dt > game ? decayCourtStopped(up, dt - game) : up;
+    players[+k] = { ...p, playedMs: p.playedMs + game, stintMs: p.stintMs + game, acute, peak: Math.max(p.peak, combineInt(up, p.playedMs + game)) };
   }
   return {
     ...s,
@@ -266,9 +279,9 @@ export function substitute(s0: LiveState, outs: number[], ins: number[], roles: 
     const inId = i[k];
     slots[slots.indexOf(outId)] = inId;
     // chi esce porta in panchina l'INT attuale (valore di uscita); chi entra parte dal valore recuperato in panchina
-    const inInt = playerIntAt(players[inId], s, now);
+    const inAcute = playerAcuteAt(players[inId], s, now).acute;
     players[outId] = { ...players[outId], onCourt: false, stintMs: 0, restSince: s.started ? now : null };
-    players[inId] = { ...players[inId], onCourt: true, stintMs: 0, entries: players[inId].entries + 1, restSince: null, int: inInt };
+    players[inId] = { ...players[inId], onCourt: true, stintMs: 0, entries: players[inId].entries + 1, restSince: null, acute: inAcute };
   });
   return { ...s, slots, players, events: [...s.events, { t: now, type: 'sub', out: o, in: i }] };
 }
@@ -288,9 +301,10 @@ export function adjustClock(s0: LiveState, deltaMs: number, now: number): LiveSt
   const players: Record<number, PlayerLive> = {};
   for (const [k, p] of Object.entries(s.players)) {
     if (p.onCourt) {
-      // avanti: l'INT sale per i secondi aggiunti; indietro: si toglie quanto sarebbe salito
-      const int = d > 0 ? rise(p.int, p.stintMs, p.playedMs, d) : clampInt(p.int + (ratePerMin(Math.max(0, p.stintMs + d), Math.max(0, p.playedMs + d)) * d) / 60_000);
-      players[+k] = { ...p, playedMs: Math.max(0, p.playedMs + d), stintMs: Math.max(0, p.stintMs + d), int, peak: Math.max(p.peak, int) };
+      // avanti: il carico sale per i secondi aggiunti; indietro: si annulla la salita di quei secondi
+      const acute = d > 0 ? riseAcute(p.acute, p.stintMs, p.playedMs, d) : unriseAcute(p.acute, p.stintMs, p.playedMs, -d);
+      const playedMs = Math.max(0, p.playedMs + d);
+      players[+k] = { ...p, playedMs, stintMs: Math.max(0, p.stintMs + d), acute, peak: Math.max(p.peak, combineInt(acute, playedMs)) };
     }
     else players[+k] = p.restSince != null ? { ...p, restSince: Math.min(now, p.restSince - d) } : p;
   }

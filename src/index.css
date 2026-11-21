@@ -250,6 +250,13 @@
   100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(28px) scale(0.3); opacity: 0; }
 }
 .score-spark { animation: score-spark 0.75s ease-out 0.1s both; }
+
+/* --- INT alto: l'anello della fatica pulsa --- */
+@keyframes int-hot {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--glow)); }
+  50% { filter: drop-shadow(0 0 9px var(--glow)); }
+}
+.int-hot { animation: int-hot 1.4s ease-in-out infinite; }
 .anim-slide-l { animation: slide-l 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 .anim-slide-r { animation: slide-r 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 

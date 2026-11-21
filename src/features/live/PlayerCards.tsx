@@ -1,18 +1,21 @@
-import { memo, type CSSProperties } from 'react';
-import { Clock3 } from 'lucide-react';
+import { memo, type CSSProperties, type ReactNode } from 'react';
+import { Clock3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import type { Player } from '@/db/types';
+import { fmtInt, intLevel } from '@/engine/int';
 import { cx } from '@/lib/cx';
 import { mmss } from './liveModel';
 
-// --- Scala funzionale INT: verde → giallo → arancio → rosso (indipendente dal tema) ---
+// --- Scala funzionale INT 0–1: bianco → giallo → arancio → rosso (indipendente dal tema) ---
 const INT_STOPS: [number, [number, number, number]][] = [
-  [0, [43, 182, 115]],
-  [40, [245, 211, 35]],
-  [70, [245, 135, 31]],
-  [100, [229, 56, 59]],
+  [0, [255, 255, 255]],
+  [0.35, [255, 214, 10]],
+  [0.65, [255, 140, 26]],
+  [1, [255, 46, 46]],
 ];
+export const INT_GRADIENT = 'linear-gradient(90deg, #ffffff 0%, #ffd60a 35%, #ff8c1a 65%, #ff2e2e 100%)';
+
 export function intColor(v: number): string {
-  const x = Math.min(100, Math.max(0, v));
+  const x = Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
   for (let i = 1; i < INT_STOPS.length; i++) {
     const [b, cb] = INT_STOPS[i];
     const [a, ca] = INT_STOPS[i - 1];
@@ -21,21 +24,49 @@ export function intColor(v: number): string {
       return `rgb(${ca.map((c, k) => Math.round(c + (cb[k] - c) * t)).join(',')})`;
     }
   }
-  return 'rgb(229,56,59)';
+  return 'rgb(255,46,46)';
 }
 
-export function IntBar({ value, style }: { value: number; style?: CSSProperties }) {
-  const v = Math.round(Math.min(100, Math.max(0, value)));
+/** Andamento dell'INT: sale (in campo, in gioco), cala piano (in campo, tempo fermo), recupera (panchina). */
+export type Trend = 'up' | 'slow' | 'down' | 'idle';
+
+export function TrendIcon({ trend, size, color }: { trend: Trend; size: number | string; color?: string }) {
+  if (trend === 'up') return <TrendingUp size={size} strokeWidth={3} style={{ color }} />;
+  if (trend === 'down') return <TrendingDown size={size} strokeWidth={3} className="text-ok" />;
+  if (trend === 'slow') return <TrendingDown size={size} strokeWidth={3} className="text-ink-muted" />;
+  return <Minus size={size} strokeWidth={3} className="text-ink-faint" />;
+}
+
+/** Barra INT a gradiente: il riempimento mostra i colori della scala fino al valore attuale. */
+export function IntBar({ value, trend = 'idle', style, label = true }: { value: number; trend?: Trend; style?: CSSProperties; label?: boolean }) {
+  const v = Math.min(1, Math.max(0, value));
+  const c = intColor(v);
   return (
     <div className="w-full" style={style}>
-      <div className="mb-1 flex items-baseline justify-between text-[11px] font-bold leading-none">
-        <span className="tracking-widest text-ink-muted">INT</span>
-        <span className="tabular" style={{ color: intColor(v) }}>
-          {v}
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${v}%`, background: intColor(v) }} />
+      {label && (
+        <div className="mb-1 flex items-center gap-1 text-[11px] font-bold leading-none">
+          <span className="tracking-widest text-ink-muted">INT</span>
+          <TrendIcon trend={trend} size={12} color={c} />
+          <span className="flex-1" />
+          <span className="font-display text-[15px] font-extrabold tabular" style={{ color: c, textShadow: v > 0.6 ? `0 0 10px ${c}` : undefined }}>
+            {fmtInt(v)}
+          </span>
+        </div>
+      )}
+      <div className="relative h-2 overflow-hidden rounded-full bg-white/[.08]">
+        {/* tacche delle soglie */}
+        {[35, 65, 80].map((x) => (
+          <i key={x} className="absolute inset-y-0 w-px bg-white/15" style={{ left: `${x}%` }} />
+        ))}
+        <div
+          className="relative h-full rounded-full transition-[width] duration-700 ease-out"
+          style={{
+            width: `${v * 100}%`,
+            backgroundImage: INT_GRADIENT,
+            backgroundSize: `${v > 0.01 ? 100 / v : 10000}% 100%`,
+            boxShadow: v > 0.05 ? `0 0 10px -1px ${c}` : undefined,
+          }}
+        />
       </div>
     </div>
   );
@@ -62,11 +93,42 @@ function Photo({ p, className, style }: { p: Player; className?: string; style?:
   );
 }
 
+const CIRC = 2 * Math.PI * 45;
+
+/** Foto con l'anello della fatica: si riempie e cambia colore (bianco → giallo → arancio → rosso) con l'INT. */
+function FatigueRing({ p, value, size, children, photoFont }: { p: Player; value: number; size: string; children?: ReactNode; photoFont?: string }) {
+  const v = Math.min(1, Math.max(0, value));
+  const c = intColor(v);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" className={cx('absolute inset-0 h-full w-full -rotate-90 overflow-visible', v >= 0.8 && 'int-hot')} style={{ '--glow': c } as CSSProperties}>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
+        {v > 0.005 && (
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
+          fill="none"
+          stroke={c}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${Math.max(0.001, v * CIRC)} ${CIRC}`}
+          style={{ transition: 'stroke-dasharray .7s ease-out, stroke .7s ease-out' }}
+        />
+        )}
+      </svg>
+      <Photo p={p} className="absolute inset-[11%]" style={{ fontSize: photoFont }} />
+      {children}
+    </div>
+  );
+}
+
 interface CardProps {
   p: Player;
   name: string;
   playedMs: number;
   int: number;
+  trend: Trend;
   selected: boolean;
   onTap: () => void;
 }
@@ -74,8 +136,9 @@ interface CardProps {
 const m = (k: number) => `calc(var(--m) * ${k})`;
 
 /** Card in campo: dimensioni in metri di campo (--m = pixel per metro), la foto è l'elemento principale. */
-export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selected, onTap }: CardProps) {
-  const v = Math.min(100, Math.max(0, int));
+export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, trend, selected, onTap }: CardProps) {
+  const v = Math.min(1, Math.max(0, int));
+  const c = intColor(v);
   return (
     <button
       data-flip={p.id}
@@ -85,36 +148,37 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selec
         'flex h-full w-full flex-col items-center justify-between overflow-hidden border bg-surface/90 shadow-[0_8px_22px_-8px_rgba(0,0,0,.85)] backdrop-blur-[2px] transition-[box-shadow,border-color,transform] duration-200 active:scale-[.96]',
         selected ? 'border-accent shadow-glow' : 'border-white/10',
       )}
-      style={{ borderRadius: m(0.38), padding: `${m(0.16)} ${m(0.18)} ${m(0.18)}`, gap: m(0.06) }}
+      style={{ borderRadius: m(0.38), padding: `${m(0.14)} ${m(0.18)} ${m(0.18)}`, gap: m(0.05) }}
     >
-      <div className="relative">
-        <Photo p={p} className={cx('ring-2', selected ? 'ring-accent' : 'ring-white/15')} style={{ width: m(2.05), height: m(2.05), fontSize: m(0.75) }} />
+      <FatigueRing p={p} value={v} size={m(2.5)} photoFont={m(0.72)}>
+        {/* INT */}
+        <span
+          className="absolute flex items-center rounded-full bg-black/75 font-display font-extrabold leading-none ring-1 tabular"
+          style={{ fontSize: `max(10.5px, ${m(0.4)})`, padding: `${m(0.05)} ${m(0.1)}`, gap: m(0.03), left: m(-0.3), top: m(-0.04), color: c, boxShadow: `0 0 0 1px ${c}55` }}
+          title={`INT ${fmtInt(v)} · ${intLevel(v)}`}
+        >
+          <TrendIcon trend={trend} size="0.85em" color={c} />
+          {fmtInt(v)}
+        </span>
+        {/* numero di maglia */}
         <span
           className="absolute grid place-items-center rounded-full bg-brand font-display font-extrabold leading-[1.35] text-on-brand shadow"
-          style={{ fontSize: `max(11px, ${m(0.44)})`, minWidth: m(0.78), padding: `0 ${m(0.1)}`, right: m(-0.18), bottom: m(-0.08) }}
+          style={{ fontSize: `max(11px, ${m(0.44)})`, minWidth: m(0.78), padding: `0 ${m(0.1)}`, right: m(-0.22), bottom: m(0.02) }}
         >
           {p.number || '–'}
         </span>
-      </div>
+      </FatigueRing>
       <b className="w-full truncate text-center leading-[1.1]" style={{ fontSize: `max(10.5px, ${m(0.4)})` }}>
         {name}
       </b>
       {/* Minuti giocati: in evidenza */}
       <div
-        className="flex w-full items-center justify-center rounded-md bg-black/55 font-display font-extrabold leading-none text-white ring-1 ring-white/15 tabular"
+        className="flex w-full items-center justify-center bg-black/55 font-display font-extrabold leading-none text-white ring-1 ring-white/15 tabular"
         style={{ fontSize: `max(16px, ${m(0.74)})`, padding: `${m(0.07)} 0`, gap: m(0.1), borderRadius: m(0.2) }}
         title="Minuti giocati"
       >
         <Clock3 size="0.62em" strokeWidth={3} className="shrink-0 text-ink-muted" />
         {mmss(playedMs)}
-      </div>
-      <div className="flex w-full items-center" style={{ gap: m(0.12) }}>
-        <div className="flex-1 overflow-hidden rounded-full bg-white/10" style={{ height: `max(4px, ${m(0.14)})` }}>
-          <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${v}%`, background: intColor(v) }} />
-        </div>
-        <span className="font-display font-bold leading-none tabular" style={{ fontSize: `max(11px, ${m(0.4)})`, color: intColor(v) }} title="INT">
-          {Math.round(v)}
-        </span>
       </div>
     </button>
   );
@@ -129,8 +193,9 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: 'ink
   );
 }
 
-/** Scheda in panchina (griglia a 2 colonne): minuti giocati e tempo reale in panchina ben leggibili. */
-export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, selected, onTap, restMs, started }: CardProps & { restMs: number; started: boolean }) {
+/** Scheda in panchina (griglia a 2 colonne): minuti, tempo in panchina e INT ben leggibili. */
+export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, trend, selected, onTap, restMs, started }: CardProps & { restMs: number; started: boolean }) {
+  const v = Math.min(1, Math.max(0, int));
   return (
     <button
       data-flip={p.id}
@@ -142,17 +207,21 @@ export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, selec
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <div className="relative shrink-0">
-          <Photo p={p} className={cx('h-11 w-11 text-base ring-2 [@media(min-height:600px)]:h-14 [@media(min-height:600px)]:w-14', selected ? 'ring-accent' : 'ring-white/10')} />
+        <FatigueRing p={p} value={v} size="50px" photoFont="15px">
           <span className="absolute -bottom-1 -right-1.5 grid min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[12px] font-extrabold leading-[1.4] text-on-brand">{p.number || '–'}</span>
+        </FatigueRing>
+        <div className="min-w-0 flex-1">
+          <b className="block truncate text-[15px] leading-tight">{name}</b>
+          <span className="block truncate text-[11px] font-bold uppercase tracking-wide" style={{ color: intColor(v) }}>
+            {started ? intLevel(v) : '—'}
+          </span>
         </div>
-        <b className="min-w-0 flex-1 truncate text-[15px] leading-tight">{name}</b>
       </div>
       <div className="flex gap-1">
         <Stat label="Minuti" value={mmss(playedMs)} tone="ink" />
         <Stat label="Panchina" value={mmss(restMs)} tone={started ? 'accent' : 'faint'} />
       </div>
-      <IntBar value={int} />
+      <IntBar value={v} trend={trend} />
     </button>
   );
 });

@@ -1,10 +1,10 @@
 import { Sheet } from '@/components/ui/Sheet';
 import type { Player } from '@/db/types';
 import { INT_CONFIG } from '@/engine/intConfig';
-import { ratePerMin } from '@/engine/int';
+import { fmtInt, intLevel, lambdaPerMin, residual, tauBenchMin } from '@/engine/int';
 import { cx } from '@/lib/cx';
 import { intColor } from './PlayerCards';
-import { intNow, mmss, restMs, type LiveState } from './liveModel';
+import { intNow, mmss, playerAcuteAt, restMs, type LiveState } from './liveModel';
 
 const min = (ms: number) => (ms / 60_000).toFixed(2);
 
@@ -17,6 +17,7 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
   const rows = players.map((p) => {
     const s = v.players[p.id!];
     const int = intNow(v, p.id!, now);
+    const { acute } = playerAcuteAt(s, v, now);
     let regime: string;
     let detail: string;
     if (!v.started) {
@@ -24,32 +25,34 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
       detail = 'partita non iniziata';
     } else if (s.onCourt && v.running) {
       regime = 'a) sale';
-      detail = `${ratePerMin(s.stintMs, s.playedMs).toFixed(2)} pt/min`;
+      detail = `λ ${lambdaPerMin(s.stintMs, s.playedMs).toFixed(3)}/min`;
     } else if (s.onCourt) {
-      regime = 'b) scende piano';
-      detail = `τ ${c.tauCourtStoppedMin}′ · base ${s.int.toFixed(1)}`;
+      regime = 'b) cala piano';
+      detail = `τ ${c.tauCourtStoppedMin}′`;
     } else {
       regime = 'c) recupero';
-      detail = `uscita ${s.int.toFixed(1)} · τ ${c.tauBenchMin}′ · ${mmss(restMs(s, now))}`;
+      detail = `uscita A ${s.acute.toFixed(3)} · τ ${tauBenchMin(s.playedMs).toFixed(1)}′ · ${mmss(restMs(s, now))}`;
     }
-    return { p, s, int, regime, detail };
+    return { p, s, int, acute, regime, detail };
   });
   return (
     <Sheet open={open} onClose={onClose} wide title="Debug INT" subtitle="Valori del calcolo in tempo reale (vista nascosta)">
       <div className="mb-3 rounded-xl border border-line bg-night/50 p-3 font-mono text-[12px] leading-relaxed text-ink-muted">
-        a) punti/min = ({c.baseRate} + {c.consecutiveCoef} × min consecutivi) × (1 + {c.totalCoef} × min totali) · max {c.max}
+        a) dA/dt = {c.riseRate} · (1 + {c.consecutiveCoef}·min consecutivi) · (1 + {c.totalCoef}·min totali) · (1 − A)
         <br />
-        b) in campo, cronometro fermo: INT × exp(−t / {c.tauCourtStoppedMin} min reali)
+        b) in campo, cronometro fermo: A · exp(−t / {c.tauCourtStoppedMin}′) · c) panchina: A_uscita · exp(−t / τ), τ = {c.tauBenchMin}′·(1 + {c.tauBenchTotalCoef}·min totali)
         <br />
-        c) in panchina: INT_uscita × exp(−t / {c.tauBenchMin} min reali) · campioni ogni {c.sampleEveryMs / 1000}s ({v.samples.length})
+        residuo R = min({c.residualMax}, {c.residualPerMin}·min totali) · INT = R + (1 − R)·A · campioni ogni {c.sampleEveryMs / 1000}s ({v.samples.length})
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-[13px] tabular">
+        <table className="w-full min-w-[700px] text-left text-[13px] tabular">
           <thead className="text-[11px] uppercase tracking-wider text-ink-muted">
             <tr className="border-b border-line">
               <th className="py-2 pr-2">Giocatore</th>
               <th className="pr-2">Dove</th>
               <th className="pr-2 text-right">INT</th>
+              <th className="pr-2 text-right">Acuto A</th>
+              <th className="pr-2 text-right">Residuo R</th>
               <th className="pr-2 text-right">Picco</th>
               <th className="pr-2 text-right">Consec.</th>
               <th className="pr-2 text-right">Totali</th>
@@ -59,16 +62,18 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ p, s, int, regime, detail }) => (
+            {rows.map(({ p, s, int, acute, regime, detail }) => (
               <tr key={p.id} className="border-b border-line/60">
                 <td className="py-1.5 pr-2 font-semibold">
                   #{p.number} {p.name}
                 </td>
                 <td className={cx('pr-2', s.onCourt ? 'text-accent-light' : 'text-ink-muted')}>{s.onCourt ? 'campo' : 'panchina'}</td>
-                <td className="pr-2 text-right font-bold" style={{ color: intColor(int) }}>
-                  {int.toFixed(1)}
+                <td className="pr-2 text-right font-bold" style={{ color: intColor(int) }} title={intLevel(int)}>
+                  {fmtInt(int)}
                 </td>
-                <td className="pr-2 text-right">{s.peak.toFixed(1)}</td>
+                <td className="pr-2 text-right">{acute.toFixed(3)}</td>
+                <td className="pr-2 text-right">{residual(s.playedMs).toFixed(3)}</td>
+                <td className="pr-2 text-right">{fmtInt(s.peak)}</td>
                 <td className="pr-2 text-right">{min(s.stintMs)}′</td>
                 <td className="pr-2 text-right">{min(s.playedMs)}′</td>
                 <td className="pr-2 text-right">{s.entries}</td>
