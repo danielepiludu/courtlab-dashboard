@@ -158,14 +158,16 @@ describe('INT durante la partita (scala 0–1)', () => {
     expect(intNow(s, 6, now)).toBe(0);
     expect(s.players[1].peak).toBeCloseTo(0.37, 2);
   });
-  it('in campo a cronometro fermo scende piano', () => {
+  it('in campo a cronometro fermo: nei primi 20 s nessun recupero, poi scende piano (meno che in panchina)', () => {
     let s = toggleClock(make(), T0);
     s = toggleClock(s, T0 + 5 * MIN);
     const atStop = intNow(settle(s, T0 + 5 * MIN), 1, T0 + 5 * MIN);
-    const v = settle(s, T0 + 8 * MIN);
-    const after = intNow(v, 1, T0 + 8 * MIN);
+    expect(intNow(settle(s, T0 + 5 * MIN + 20 * SEC), 1, T0 + 5 * MIN + 20 * SEC)).toBeCloseTo(atStop, 12);
+    const after = intNow(settle(s, T0 + 8 * MIN), 1, T0 + 8 * MIN);
     expect(after).toBeLessThan(atStop);
-    expect(atStop - after).toBeLessThan(0.08);
+    let b = substitute(s, [1], [6], roles, T0 + 5 * MIN);
+    b = settle(b, T0 + 8 * MIN);
+    expect(intNow(b, 1, T0 + 8 * MIN)).toBeLessThan(after); // la panchina fa recuperare di più
   });
   it('in panchina recupera in tempo reale, anche a cronometro fermo', () => {
     let s = toggleClock(make(), T0);
@@ -248,5 +250,72 @@ describe('INT durante la partita (scala 0–1)', () => {
     expect(n.samples).toEqual([]);
     expect(n.players[1].acute).toBe(0.5);
     expect(n.players[1].peak).toBe(0.8);
+  });
+});
+
+describe('scenari di partita: tempo consecutivo, interruzioni, intervalli', () => {
+  const SEC = 1000;
+  const play = (mins: number) => settle(toggleClock(make(), T0), T0 + mins * MIN);
+  it('10′ di gioco continuo affaticano più di 10′ spezzati da 3′ di panchina', () => {
+    const cont = intNow(play(10), 1, T0 + 10 * MIN);
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + 5 * MIN); // stop
+    s = substitute(s, [1], [6], roles, T0 + 5 * MIN);
+    s = settle(s, T0 + 8 * MIN); // 3′ reali di pausa a cronometro fermo
+    s = substitute(s, [6], [1], roles, T0 + 8 * MIN);
+    s = toggleClock(s, T0 + 8 * MIN);
+    const split = intNow(settle(s, T0 + 13 * MIN), 1, T0 + 13 * MIN);
+    expect(cont).toBeGreaterThan(split + 0.1);
+  });
+  it('fermate brevi (30 s di gioco e 30 s di stop): recupero minimo, il carico resta vicino al continuo', () => {
+    let s = toggleClock(make(), T0);
+    let t = T0;
+    for (let k = 0; k < 20; k++) {
+      t += 30 * SEC;
+      s = toggleClock(s, t);
+      t += 30 * SEC;
+      s = toggleClock(s, t);
+    }
+    const interrupted = intNow(settle(s, t), 1, t);
+    const cont = intNow(play(10), 1, T0 + 10 * MIN);
+    expect(interrupted).toBeLessThan(cont);
+    expect(cont - interrupted).toBeLessThan(0.05);
+  });
+  it('un timeout di 1′ a metà stint fa calare poco', () => {
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + 5 * MIN);
+    const before = intNow(settle(s, T0 + 5 * MIN), 1, T0 + 5 * MIN);
+    const after = intNow(settle(s, T0 + 6 * MIN), 1, T0 + 6 * MIN);
+    expect(before - after).toBeGreaterThan(0.01);
+    expect(before - after).toBeLessThan(0.04);
+  });
+  it('intervallo tra i quarti (2′): chi era in campo recupera come in panchina', () => {
+    const end = play(10); // fine Q1
+    const atEnd = intNow(end, 1, T0 + 10 * MIN);
+    const brk = intNow(settle(end, T0 + 12 * MIN), 1, T0 + 12 * MIN);
+    expect(atEnd).toBeCloseTo(0.67, 2);
+    expect(brk).toBeLessThan(0.52);
+    expect(brk).toBeGreaterThan(0.45);
+  });
+  it('intervallo di metà gara (15′): resta quasi solo il residuo dei minuti giocati', () => {
+    const v = intNow(settle(play(10), T0 + 25 * MIN), 1, T0 + 25 * MIN);
+    expect(v).toBeLessThan(0.12);
+    expect(v).toBeGreaterThanOrEqual(0.05); // residuo di 10′
+  });
+  it('dopo un intervallo lo stint riparte: il rientro non è più veloce di uno stint nuovo', () => {
+    let s = settle(play(10), T0 + 25 * MIN);
+    s = toggleClock(s, T0 + 25 * MIN); // Q2
+    expect(s.players[1].stintMs).toBe(0);
+    const afterBreak = settle(s, T0 + 30 * MIN);
+    const gain = intNow(afterBreak, 1, T0 + 30 * MIN) - intNow(s, 1, T0 + 25 * MIN);
+    expect(gain).toBeLessThan(0.4); // simile a 5′ da riposato (≈0,35), non un'impennata
+    expect(gain).toBeGreaterThan(0.25);
+  });
+  it('l\'INT si ricostruisce identico anche durante interruzioni e intervalli', () => {
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + 3 * MIN); // stop
+    const saved = JSON.parse(JSON.stringify(settle(s, T0 + 3 * MIN + 10 * SEC))) as LiveState;
+    const t = T0 + 4 * MIN;
+    expect(intNow(settle(saved, t), 1, t)).toBeCloseTo(intNow(settle(s, t), 1, t), 12);
   });
 });

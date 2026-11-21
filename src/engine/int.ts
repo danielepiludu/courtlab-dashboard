@@ -41,8 +41,17 @@ export function decay(a0: number, realMs: number, tauMin: number): number {
   return clamp01(a0 * Math.exp(-realMs / MIN / tauMin));
 }
 
-/** b) In campo a cronometro fermo: il carico acuto scende piano. */
+/** b) In campo a cronometro fermo: il carico acuto scende piano (`realMs` = tempo di recupero effettivo). */
 export const decayCourtStopped = (a0: number, realMs: number, cfg: IntConfig = INT_CONFIG) => decay(a0, realMs, cfg.tauCourtStoppedMin);
+
+/**
+ * Tempo di recupero effettivo di un'interruzione iniziata in `stoppedAt`, nell'intervallo [from, to]:
+ * i primi `stopGraceSec` secondi non contano (fallo, rimessa, tiri liberi).
+ */
+export function stopRecoveryMs(stoppedAt: number, from: number, to: number, cfg: IntConfig = INT_CONFIG): number {
+  const g = stoppedAt + cfg.stopGraceSec * 1000;
+  return Math.max(0, to - Math.max(from, g));
+}
 
 /** τ del recupero in panchina: più lento se si è giocato tanto. */
 export const tauBenchMin = (totalMs: number, cfg: IntConfig = INT_CONFIG) => cfg.tauBenchMin * (1 + cfg.tauBenchTotalCoef * (totalMs / MIN));

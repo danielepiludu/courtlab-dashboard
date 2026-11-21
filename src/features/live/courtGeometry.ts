@@ -25,16 +25,16 @@ export const CORE = { x0: -0.3, x1: 15.3, y0: -0.3, y1: 13.6, y1WithCenter: 16.3
 
 /** Card giocatore in campo (metri). */
 export const CARD_W = 3.9;
-export const CARD_H = 4.6;
+export const CARD_H = 5.0;
 
 /**
  * Posizioni (centro card, metri): 0 punta, 1 ala sinistra, 2 ala destra (fuori dall'arco, non negli angoli),
  * 3-4 lunghi dentro il pitturato, sotto al ferro così il canestro resta visibile.
  */
 export const SLOTS_M: [number, number][] = [
-  [7.5, 10.3],
-  [2.25, 8.9],
-  [12.75, 8.9],
+  [7.5, 10.7],
+  [2.25, 9.3],
+  [12.75, 9.3],
   [5.3, 4.2],
   [9.7, 4.2],
 ];

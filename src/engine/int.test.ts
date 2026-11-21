@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { INT_CONFIG } from './intConfig';
-import { combineInt, decayBench, decayCourtStopped, fmtInt, intAfterPlay, lambdaPerMin, minutesToReach, residual, riseAcute, tauBenchMin, unriseAcute } from './int';
+import { combineInt, decayBench, decayCourtStopped, fmtInt, intAfterPlay, lambdaPerMin, minutesToReach, residual, riseAcute, stopRecoveryMs, tauBenchMin, unriseAcute } from './int';
 
 const MIN = 60_000;
 
@@ -41,9 +41,14 @@ describe('a) in campo, cronometro in corso', () => {
 });
 
 describe('b) in campo, cronometro fermo (tempi morti)', () => {
-  it('scende piano: τ 15 minuti reali', () => {
-    expect(decayCourtStopped(0.6, 15 * MIN)).toBeCloseTo(0.6 * Math.exp(-1), 9);
-    expect(0.6 - decayCourtStopped(0.6, MIN)).toBeLessThan(0.05);
+  it('le interruzioni brevi (≤ 20 s: fallo, rimessa, liberi) non fanno recuperare', () => {
+    expect(stopRecoveryMs(0, 0, 20_000)).toBe(0);
+    expect(stopRecoveryMs(0, 0, 60_000)).toBe(40_000); // timeout: 40 s di recupero
+    expect(stopRecoveryMs(0, 30_000, 60_000)).toBe(30_000); // spezzato in due tratti: stesso totale
+  });
+  it('poi scende piano: τ 10 minuti reali', () => {
+    expect(decayCourtStopped(0.6, 10 * MIN)).toBeCloseTo(0.6 * Math.exp(-1), 9);
+    expect(0.6 - decayCourtStopped(0.6, 40_000)).toBeLessThan(0.05);
   });
 });
 
