@@ -6,6 +6,77 @@
 @import '@fontsource/barlow-condensed/latin-700.css';
 @import '@fontsource/barlow-condensed/latin-800.css';
 
+/*
+ * Tema dinamico: le variabili --c-* sono impostate a runtime dai colori della squadra attiva
+ * (src/theme/ThemeController.tsx). Registrandole con @property il cambio squadra
+ * produce una transizione fluida dei colori. I valori iniziali sono quelli della squadra predefinita.
+ */
+@property --c-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #050f1a;
+}
+@property --c-surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0c1e31;
+}
+@property --c-surface-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #12263d;
+}
+@property --c-surface-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #182f49;
+}
+@property --c-bar {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #002855;
+}
+@property --c-line {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1f3751;
+}
+@property --c-brand {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #df2f36;
+}
+@property --c-brand-strong {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c42930;
+}
+@property --c-brand-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #e55257;
+}
+@property --c-on-brand {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+@property --c-select {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #126fd9;
+}
+@property --c-select-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #3987df;
+}
+@property --c-on-select {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,6 +84,20 @@
 @layer base {
   :root {
     color-scheme: dark;
+    transition:
+    --c-bg 0.6s ease,
+    --c-surface 0.6s ease,
+    --c-surface-2 0.6s ease,
+    --c-surface-3 0.6s ease,
+    --c-bar 0.6s ease,
+    --c-line 0.6s ease,
+    --c-brand 0.6s ease,
+    --c-brand-strong 0.6s ease,
+    --c-brand-text 0.6s ease,
+    --c-on-brand 0.6s ease,
+    --c-select 0.6s ease,
+    --c-select-text 0.6s ease,
+    --c-on-select 0.6s ease;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --tabbar-h: 68px;
@@ -43,22 +128,25 @@
   img {
     -webkit-user-drag: none;
   }
+  fieldset:disabled .input {
+    @apply opacity-70;
+  }
   input[type='date']::-webkit-calendar-picker-indicator,
   input[type='time']::-webkit-calendar-picker-indicator {
     filter: invert(0.8);
   }
   :focus-visible {
-    outline: 2px solid #1976d2;
+    outline: 2px solid var(--c-select);
     outline-offset: 2px;
   }
   ::selection {
-    background: rgba(25, 118, 210, 0.45);
+    background: color-mix(in srgb, var(--c-select) 45%, transparent);
   }
 }
 
 @layer components {
   .input {
-    @apply h-12 w-full rounded-xl border border-line bg-night/60 px-3.5 text-[16px] text-ink outline-none transition placeholder:text-ink-faint focus:border-accent focus:bg-night focus:shadow-[0_0_0_3px_rgba(25,118,210,.25)];
+    @apply h-12 w-full rounded-xl border border-line bg-night/60 px-3.5 text-[16px] text-ink outline-none transition placeholder:text-ink-faint focus:border-accent focus:bg-night focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--c-select)_25%,transparent)];
   }
   .label {
     @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted;

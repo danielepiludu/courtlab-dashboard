@@ -1,16 +1,31 @@
-/** Palette ispirata al logo Pallacanestro Don Bosco Livorno. */
+/**
+ * Tutti i colori di brand sono variabili CSS impostate a runtime dalla squadra attiva
+ * (vedi src/theme). Qui nessun colore di brand scritto a mano: solo riferimenti alle variabili.
+ * L'opacità (es. bg-brand/20) usa color-mix, così funziona anche con le variabili.
+ */
+const v = (name) => ({ opacityValue }) =>
+  opacityValue === undefined || opacityValue === '1' || opacityValue === 1
+    ? `var(--c-${name})`
+    : `color-mix(in srgb, var(--c-${name}) calc(${opacityValue} * 100%), transparent)`;
+
+const glow = (name, a) => `color-mix(in srgb, var(--c-${name}) ${a}%, transparent)`;
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        night: '#060D1F', // sfondo app
-        surface: { DEFAULT: '#0D1B3A', 2: '#132651', 3: '#18306A' }, // card e pannelli
-        navy: '#002855', // header e tab bar
-        brand: { DEFAULT: '#EE3239', dark: '#C9252B', soft: '#EE323926' }, // rosso primario
-        accent: { DEFAULT: '#1976D2', light: '#4A9BEA', soft: '#1976D229' }, // azzurro secondario
-        ink: { DEFAULT: '#E8ECF4', muted: '#9AA6BF', faint: '#5E6B88' }, // testo
-        line: '#1E2D52', // bordi sottili
+        night: v('bg'), // sfondo app
+        surface: { DEFAULT: v('surface'), 2: v('surface-2'), 3: v('surface-3') }, // card e pannelli
+        bar: v('bar'), // header e tab bar
+        line: v('line'), // bordi sottili
+        brand: { DEFAULT: v('brand'), strong: v('brand-strong'), text: v('brand-text') }, // accento primario
+        'on-brand': v('on-brand'),
+        accent: { DEFAULT: v('select'), light: v('select-text') }, // accento di selezione
+        'on-accent': v('on-select'),
+        // testo: fisso per leggibilità
+        ink: { DEFAULT: '#E8ECF4', muted: '#9AA6BF', faint: '#5E6B88' },
+        // colori funzionali, indipendenti dalla squadra
         ok: '#2BB673',
         warn: '#F5A524',
         danger: '#FF5A5F',
@@ -20,12 +35,15 @@ export default {
         display: ['"Barlow Condensed"', 'Barlow', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 0 2px #1976D2, 0 0 18px 2px rgba(25,118,210,.45)',
-        'glow-red': '0 0 0 2px #EE3239, 0 0 18px 2px rgba(238,50,57,.40)',
+        glow: `0 0 0 2px var(--c-select), 0 0 18px 2px ${glow('select', 45)}`,
+        'glow-brand': `0 0 0 2px var(--c-brand), 0 0 18px 2px ${glow('brand', 40)}`,
+        brand: `0 8px 24px -10px ${glow('brand', 80)}`,
+        'brand-lg': `0 10px 30px -8px ${glow('brand', 90)}`,
+        select: `0 6px 18px -6px ${glow('select', 90)}`,
+        'select-sm': `0 0 14px -2px ${glow('select', 55)}`,
         card: '0 6px 24px -10px rgba(0,0,0,.6)',
       },
       borderRadius: { '4xl': '2rem' },
-      transitionTimingFunction: { spring: 'cubic-bezier(.2,.9,.3,1.15)', out: 'cubic-bezier(.2,.9,.3,1)' },
     },
   },
   plugins: [],

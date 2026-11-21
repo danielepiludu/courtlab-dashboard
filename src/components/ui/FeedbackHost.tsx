@@ -5,7 +5,7 @@ import { useBackClose } from '@/lib/backNav';
 import { cx } from '@/lib/cx';
 import { Button } from './Button';
 import { useMountTransition } from './Sheet';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** Host globale di toast e dialog di conferma. */
 export function FeedbackHost() {
@@ -17,6 +17,11 @@ export function FeedbackHost() {
   if (confirm) last.current = confirm;
   const c = last.current;
   useBackClose(open, () => resolveConfirm(false));
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    if (open) setTyped('');
+  }, [open]);
+  const blocked = !!c?.requireText && typed.trim().toLowerCase() !== c.requireText.trim().toLowerCase();
 
   return createPortal(
     <>
@@ -27,8 +32,8 @@ export function FeedbackHost() {
             role="status"
             className={cx(
               'anim-pop flex max-w-md items-center gap-2.5 rounded-2xl border px-4 py-3 text-[15px] font-semibold shadow-card backdrop-blur',
-              t.tone === 'success' && 'border-ok/40 bg-[#0b2a22]/95 text-ok',
-              t.tone === 'error' && 'border-danger/40 bg-[#2a0e14]/95 text-danger',
+              t.tone === 'success' && 'border-ok/40 bg-surface-2/95 text-ok',
+              t.tone === 'error' && 'border-danger/40 bg-surface-2/95 text-danger',
               t.tone === 'info' && 'border-accent/40 bg-surface-2/95 text-ink',
             )}
           >
@@ -47,12 +52,20 @@ export function FeedbackHost() {
             )}
           >
             <h3 className="font-display text-2xl font-bold leading-tight">{c.title}</h3>
-            {c.message && <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">{c.message}</p>}
+            {c.message && <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-muted">{c.message}</p>}
+            {c.requireText && (
+              <label className="mt-4 block">
+                <span className="label">
+                  Per confermare scrivi: <b className="normal-case tracking-normal text-ink">{c.requireText}</b>
+                </span>
+                <input className="input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+              </label>
+            )}
             <div className="mt-6 flex gap-3">
               <Button className="flex-1" onClick={() => resolveConfirm(false)}>
                 {c.cancelLabel ?? 'Annulla'}
               </Button>
-              <Button className="flex-1" variant={c.danger ? 'primary' : 'accent'} onClick={() => resolveConfirm(true)}>
+              <Button className="flex-1" variant={c.danger ? 'primary' : 'accent'} disabled={blocked} onClick={() => resolveConfirm(true)}>
                 {c.confirmLabel ?? 'Conferma'}
               </Button>
             </div>

@@ -7,12 +7,15 @@ import { PlayersScreen } from '@/features/players/PlayersScreen';
 import { MatchSetupScreen } from '@/features/match/MatchSetupScreen';
 import { ReportsScreen } from '@/features/reports/ReportsScreen';
 import { LiveScreen } from '@/features/live/LiveScreen';
+import { TeamsScreen } from '@/features/teams/TeamsScreen';
+import { ThemeController } from '@/theme/ThemeController';
 import { db, requestPersistentStorage } from '@/db/db';
-import { importLegacyOnce } from '@/db/repo';
+import { ensureTeam, importLegacyOnce } from '@/db/repo';
 import { useUI } from '@/store/ui';
 import { toast } from '@/store/feedback';
 import { SPLASH_MIN_MS } from '@/config';
 
+/** Avvio: apre il database, importa eventuali dati legacy e ripristina la squadra attiva. */
 function useBoot() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -22,6 +25,9 @@ function useBoot() {
         await db.open();
         const n = await importLegacyOnce();
         if (n) toast(`Importati ${n} elementi dalla versione precedente`, 'success', 3500);
+        const ui = useUI.getState();
+        const id = await ensureTeam(ui.activeTeamId);
+        if (id !== ui.activeTeamId) ui.setActiveTeam(id);
       } catch (e) {
         console.error(e);
         toast('Errore di accesso ai dati locali', 'error', 5000);
@@ -38,6 +44,7 @@ export default function App() {
   const [splashGone, setSplashGone] = useState(false);
   const tab = useUI((s) => s.tab);
   const substrate = useUI((s) => s.substrate);
+  const teamId = useUI((s) => s.activeTeamId);
 
   useEffect(() => {
     if (!ready) return;
@@ -47,6 +54,7 @@ export default function App() {
 
   return (
     <>
+      {ready && <ThemeController />}
       {ready &&
         (substrate === 'live' ? (
           <LiveScreen />
@@ -54,7 +62,7 @@ export default function App() {
           <div className="flex h-full flex-col">
             <main
               id="tab-scroll"
-              key={tab}
+              key={`${tab}-${teamId}`}
               className="anim-fade flex-1 overflow-y-auto overscroll-contain"
               style={{ paddingBottom: 'calc(var(--tabbar-h) + var(--safe-bottom))' }}
             >
@@ -64,6 +72,7 @@ export default function App() {
               {tab === 'reports' && <ReportsScreen />}
             </main>
             <TabBar />
+            <TeamsScreen />
           </div>
         ))}
       {!splashGone && <Splash leaving={ready} />}

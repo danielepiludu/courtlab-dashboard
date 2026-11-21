@@ -12,7 +12,7 @@ import { usePlayers } from '@/db/hooks';
 import { ROLES, ROLE_LABEL, STATUSES, type Player, type PlayerStatus } from '@/db/types';
 import { loadImageFile } from '@/lib/image';
 import { confirmDialog, toast } from '@/store/feedback';
-import { useUI } from '@/store/ui';
+import { useSetup, useUI } from '@/store/ui';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 
@@ -33,11 +33,13 @@ export const TRAIT_SUGGESTIONS = [
 
 interface Props {
   player: Player | null;
+  /** squadra archiviata: solo consultazione */
+  readOnly?: boolean;
   onClose: () => void;
 }
 
 /** Scheda giocatore: foto, dati, caratteristiche, stato e note. */
-export function PlayerFormSheet({ player, onClose }: Props) {
+export function PlayerFormSheet({ player, readOnly = false, onClose }: Props) {
   const [draft, setDraft] = useState<Player | null>(player);
   const [crop, setCrop] = useState<HTMLCanvasElement | null>(null);
   const [customTrait, setCustomTrait] = useState('');
@@ -45,7 +47,7 @@ export function PlayerFormSheet({ player, onClose }: Props) {
   const camRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const players = usePlayers();
-  const setup = useUI((s) => s.setup);
+  const setup = useSetup();
   const patchSetup = useUI((s) => s.patchSetup);
 
   useEffect(() => {
@@ -123,21 +125,23 @@ export function PlayerFormSheet({ player, onClose }: Props) {
         onClose={onClose}
         title={draft?.id ? 'Scheda giocatore' : 'Nuovo giocatore'}
         footer={
+          !readOnly && (
           <div className="flex gap-3">
             {draft?.id && <Button variant="danger" size="lg" className="px-4" onClick={remove} aria-label="Elimina giocatore" icon={<Trash size={20} />} />}
             <Button variant="primary" size="lg" className="flex-1" disabled={!valid || busy} onClick={save}>
               {draft?.id ? 'Salva scheda' : 'Aggiungi giocatore'}
             </Button>
           </div>
+          )
         }
       >
         {draft && (
-          <>
+          <fieldset disabled={readOnly} className="min-w-0">
             {/* Foto */}
             <div className="mb-5 flex flex-col items-center">
               <div className="relative">
-                <Avatar player={draft} size={128} className="shadow-[0_0_0_3px_#1E2D52,0_16px_40px_-12px_rgba(0,0,0,.9)]" />
-                {draft.photo && (
+                <Avatar player={draft} size={128} className="shadow-[0_0_0_3px_var(--c-line),0_16px_40px_-12px_rgba(0,0,0,.9)]" />
+                {draft.photo && !readOnly && (
                   <button
                     onClick={() => up({ photo: undefined })}
                     aria-label="Rimuovi foto"
@@ -147,7 +151,7 @@ export function PlayerFormSheet({ player, onClose }: Props) {
                   </button>
                 )}
               </div>
-              <div className="mt-4 flex gap-2">
+              <div className={readOnly ? 'hidden' : 'mt-4 flex gap-2'}>
                 <Button size="sm" icon={<Camera size={18} />} onClick={() => camRef.current?.click()}>
                   Fotocamera
                 </Button>
@@ -214,7 +218,7 @@ export function PlayerFormSheet({ player, onClose }: Props) {
                       }}
                       className={cx(
                         'h-10 rounded-full border px-3.5 text-[14px] font-semibold transition active:scale-95',
-                        on ? 'border-accent bg-accent/20 text-white' : 'border-line bg-night/40 text-ink-muted',
+                        on ? 'border-accent bg-accent/20 text-ink' : 'border-line bg-night/40 text-ink-muted',
                       )}
                     >
                       {t}
@@ -283,7 +287,7 @@ export function PlayerFormSheet({ player, onClose }: Props) {
                 onChange={(e) => up({ notes: e.target.value })}
               />
             </Field>
-          </>
+          </fieldset>
         )}
       </Sheet>
       <PhotoCropper

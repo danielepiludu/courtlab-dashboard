@@ -10,10 +10,13 @@ interface Props {
   source: HTMLCanvasElement | null;
   onCancel: () => void;
   onDone: (dataUrl: string) => void;
+  /** cerchio (foto giocatore) o quadrato (logo) */
+  shape?: 'circle' | 'square';
+  title?: string;
 }
 
-/** Ritaglio circolare: trascina per spostare, pizzica o usa lo slider per lo zoom. */
-export function PhotoCropper({ source, onCancel, onDone }: Props) {
+/** Ritaglio circolare (o quadrato): trascina per spostare, pizzica o usa lo slider per lo zoom. */
+export function PhotoCropper({ source, onCancel, onDone, shape = 'circle', title = 'Ritaglia foto' }: Props) {
   const open = !!source;
   useBackClose(open, onCancel);
   const [view, setView] = useState<CropView>({ zoom: 1, dx: 0, dy: 0 });
@@ -72,7 +75,7 @@ export function PhotoCropper({ source, onCancel, onDone }: Props) {
         <button onClick={onCancel} aria-label="Annulla" className="grid h-11 w-11 place-items-center rounded-full bg-white/5 active:scale-90">
           <X size={22} />
         </button>
-        <div className="flex-1 font-display text-2xl font-bold tracking-wide">Ritaglia foto</div>
+        <div className="flex-1 font-display text-2xl font-bold tracking-wide">{title}</div>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
         <div
@@ -91,8 +94,11 @@ export function PhotoCropper({ source, onCancel, onDone }: Props) {
             className="pointer-events-none absolute left-1/2 top-1/2 max-w-none"
             style={{ width: w, height: h, transform: `translate(calc(-50% + ${view.dx * diam}px), calc(-50% + ${view.dy * diam}px))` }}
           />
-          {/* maschera circolare */}
-          <div className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_999px_rgba(6,13,31,.86)] ring-2 ring-accent/80" />
+          {/* maschera */}
+          <div
+            className={`pointer-events-none absolute inset-0 ring-2 ring-accent/80 ${shape === 'circle' ? 'rounded-full' : 'rounded-2xl'}`}
+            style={{ boxShadow: '0 0 0 999px color-mix(in srgb, var(--c-bg) 86%, transparent)' }}
+          />
         </div>
         <div className="flex w-full max-w-sm items-center gap-3">
           <ZoomOut size={20} className="text-ink-muted" />
@@ -103,12 +109,13 @@ export function PhotoCropper({ source, onCancel, onDone }: Props) {
             step={0.01}
             value={view.zoom}
             onChange={(e) => update((v) => ({ ...v, zoom: Number(e.target.value) }))}
-            className="h-11 flex-1 accent-[#1976D2]"
+            className="h-11 flex-1"
+            style={{ accentColor: 'var(--c-select)' }}
             aria-label="Zoom"
           />
           <ZoomIn size={20} className="text-ink-muted" />
         </div>
-        <p className="-mt-3 text-center text-sm text-ink-muted">Trascina per centrare il volto, pizzica per ingrandire</p>
+        <p className="-mt-3 text-center text-sm text-ink-muted">{shape === 'circle' ? 'Trascina per centrare il volto, pizzica per ingrandire' : 'Trascina e ingrandisci per inquadrare il logo'}</p>
       </div>
       <div className="grid grid-cols-2 gap-3 p-4">
         <Button size="lg" onClick={onCancel}>
@@ -120,7 +127,7 @@ export function PhotoCropper({ source, onCancel, onDone }: Props) {
           icon={<Check size={20} />}
           onClick={() => {
             haptic.confirm();
-            onDone(exportCrop(source, view));
+            onDone(exportCrop(source, view, shape === 'circle' ? 480 : 512, shape === 'square' ? 'png' : 'jpeg'));
           }}
         >
           Usa foto

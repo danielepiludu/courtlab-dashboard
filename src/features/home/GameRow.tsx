@@ -9,7 +9,7 @@ export function OutcomePill({ game, className }: { game: Game; className?: strin
     <span
       className={cx(
         'grid h-7 w-7 place-items-center rounded-lg font-display text-sm font-extrabold',
-        o === 'W' ? 'bg-ok/20 text-ok' : o === 'L' ? 'bg-brand/20 text-brand' : 'bg-white/10 text-ink-muted',
+        o === 'W' ? 'bg-ok/20 text-ok' : o === 'L' ? 'bg-brand/20 text-brand-text' : 'bg-white/10 text-ink-muted',
         className,
       )}
     >
@@ -24,10 +24,10 @@ export function GameRow({ game, onClick }: { game: Game; onClick?: () => void })
   const finished = game.status === 'finished';
   return (
     <button onClick={onClick} className="card pressable flex w-full items-center gap-3 p-3 text-left">
-      <div className={cx('flex w-14 shrink-0 flex-col items-center rounded-xl py-1.5', finished ? 'bg-white/5' : 'bg-navy')}>
+      <div className={cx('flex w-14 shrink-0 flex-col items-center rounded-xl py-1.5', finished ? 'bg-white/5' : 'bg-bar')}>
         <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">{WEEKDAYS_SHORT[weekdayMon0(d)]}</span>
         <span className="font-display text-2xl font-bold leading-none">{d.getDate()}</span>
-        <span className="text-[11px] font-semibold uppercase text-brand">{MONTHS_SHORT[d.getMonth()]}</span>
+        <span className="text-[11px] font-semibold uppercase text-brand-text">{MONTHS_SHORT[d.getMonth()]}</span>
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[17px] font-bold">
@@ -37,7 +37,7 @@ export function GameRow({ game, onClick }: { game: Game; onClick?: () => void })
         <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-muted">
           {game.home ? <MapPin size={13} /> : <Plane size={13} />}
           {game.home ? 'Casa' : 'Trasferta'} · {game.time}
-          {game.status === 'live' && <span className="ml-1 rounded bg-brand px-1.5 text-[11px] font-bold text-white">LIVE</span>}
+          {game.status === 'live' && <span className="ml-1 rounded bg-brand px-1.5 text-[11px] font-bold text-on-brand">LIVE</span>}
         </div>
       </div>
       {finished ? (

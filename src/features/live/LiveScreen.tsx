@@ -1,10 +1,10 @@
 import { ArrowLeft, Construction, RotateCw } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { Logo } from '@/components/ui/misc';
-import { useGame, usePlayers } from '@/db/hooks';
+import { TeamLogo } from '@/components/TeamLogo';
+import { useActiveTeam, useGame, usePlayers } from '@/db/hooks';
 import { exitGameMode, useWakeLock } from '@/lib/device';
-import { useUI } from '@/store/ui';
+import { useSetup, useUI } from '@/store/ui';
 
 /**
  * Secondo substrato: schermata partita (landscape, fullscreen, senza tab bar).
@@ -12,7 +12,8 @@ import { useUI } from '@/store/ui';
  * Campo, REST, timer e cambi arrivano nella Fase 2.
  */
 export function LiveScreen() {
-  const setup = useUI((s) => s.setup);
+  const setup = useSetup();
+  const team = useActiveTeam();
   const setSubstrate = useUI((s) => s.setSubstrate);
   const game = useGame(setup.gameId);
   const players = usePlayers() ?? [];
@@ -38,10 +39,12 @@ export function LiveScreen() {
         </Button>
       </div>
 
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-white/5 bg-navy px-4">
-        <Logo size={40} />
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-white/5 bg-bar px-4">
+        <TeamLogo team={team} size={40} />
         <div className="flex-1">
-          <div className="font-display text-2xl font-bold leading-none">Don Bosco {game ? (game.home ? 'vs' : '@') : ''} {game?.opponent}</div>
+          <div className="truncate font-display text-2xl font-bold leading-none">
+            {team?.name} {game ? (game.home ? 'vs' : '@') : ''} {game?.opponent}
+          </div>
           <div className="text-[13px] text-ink-muted">Anteprima Fase 1</div>
         </div>
         <Button icon={<ArrowLeft size={18} />} onClick={exit}>
@@ -50,7 +53,7 @@ export function LiveScreen() {
       </header>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-10 p-6">
         <div className="max-w-md text-center">
-          <Construction size={44} className="mx-auto text-brand" />
+          <Construction size={44} className="mx-auto text-brand-text" />
           <h2 className="mt-3 font-display text-3xl font-bold">Schermata partita</h2>
           <p className="mt-2 text-ink-muted">Campo, card giocatori, colonna REST, timer e cambi arrivano nella Fase 2. Qui verifichi già schermo intero, orientamento e schermo sempre acceso.</p>
         </div>

@@ -5,14 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#002855" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Minuti giocati e carico di fatica (INT) dei giocatori — Pallacanestro Don Bosco Livorno" />
+    <meta name="description" content="Minuti giocati e carico di fatica (INT) dei giocatori, per più squadre" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/png" href="icons/favicon-64.png" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-    <title>Don Bosco Basket Monitor</title>
-    <style>html,body{background:#060D1F;color:#E8ECF4;margin:0}</style>
+    <title>Basket Monitor</title>
+    <script>
+      // Applica subito il tema dell'ultima squadra attiva (evita il lampo di colori all'avvio)
+      try {
+        var t = JSON.parse(localStorage.getItem('bm-theme') || 'null');
+        if (t && t.vars) {
+          for (var k in t.vars) document.documentElement.style.setProperty(k, t.vars[k]);
+          if (t.vars['--c-bar']) document.querySelector('meta[name=theme-color]').setAttribute('content', t.vars['--c-bar']);
+        }
+      } catch (e) {}
+    </script>
+    <style>html,body{background:var(--c-bg,#050f1a);color:#E8ECF4;margin:0}</style>
   </head>
   <body>
     <div id="root"></div>

@@ -14,38 +14,63 @@ export interface SetupDraft {
   allowInjured: boolean;
 }
 
-const emptySetup = (): SetupDraft => ({ gameId: null, called: [], starters: [], allowInjured: false });
+export const EMPTY_SETUP: SetupDraft = Object.freeze({ gameId: null, called: [], starters: [], allowInjured: false }) as SetupDraft;
 
 interface UIState {
+  /** squadra attiva: tutto ciò che si vede dipende da questa */
+  activeTeamId: number | null;
+  setActiveTeam: (id: number) => void;
   tab: Tab;
   setTab: (t: Tab) => void;
   substrate: Substrate;
   setSubstrate: (s: Substrate) => void;
-  setup: SetupDraft;
+  /** schermata Squadre (non è una tab) */
+  teamsOpen: boolean;
+  setTeamsOpen: (o: boolean) => void;
+  /** bozza di convocazione, separata per ogni squadra */
+  setups: Record<number, SetupDraft>;
   patchSetup: (p: Partial<SetupDraft>) => void;
-  resetSetup: () => void;
-  /** id della partita il cui resoconto è aperto nella tab Resoconti */
-  openReportId: number | null;
-  setOpenReport: (id: number | null) => void;
+  resetSetup: (teamId?: number) => void;
 }
 
 export const useUI = create<UIState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      activeTeamId: null,
+      setActiveTeam: (activeTeamId) => set({ activeTeamId }),
       tab: 'home',
       setTab: (tab) => set({ tab }),
       substrate: 'tabs',
       setSubstrate: (substrate) => set({ substrate }),
-      setup: emptySetup(),
-      patchSetup: (p) => set((s) => ({ setup: { ...s.setup, ...p } })),
-      resetSetup: () => set({ setup: emptySetup() }),
-      openReportId: null,
-      setOpenReport: (openReportId) => set({ openReportId }),
+      teamsOpen: false,
+      setTeamsOpen: (teamsOpen) => set({ teamsOpen }),
+      setups: {},
+      patchSetup: (p) => {
+        const id = get().activeTeamId;
+        if (id == null) return;
+        set((s) => ({ setups: { ...s.setups, [id]: { ...(s.setups[id] ?? EMPTY_SETUP), ...p } } }));
+      },
+      resetSetup: (teamId) => {
+        if (teamId === undefined) return set({ setups: {} });
+        set((s) => {
+          const setups = { ...s.setups };
+          delete setups[teamId];
+          return { setups };
+        });
+      },
     }),
     {
       name: 'dbbm-ui',
-      version: 1,
-      partialize: (s) => ({ tab: s.tab, setup: s.setup }),
+      version: 2,
+      partialize: (s) => ({ tab: s.tab, setups: s.setups, activeTeamId: s.activeTeamId }),
+      // v1 aveva una sola bozza `setup`: si scarta (i convocati vanno riscelti per squadra)
+      migrate: (old) => {
+        const o = (old ?? {}) as Partial<UIState>;
+        return { tab: o.tab ?? 'home', setups: {}, activeTeamId: null } as unknown as UIState;
+      },
     },
   ),
 );
+
+/** Bozza di convocazione della squadra attiva. */
+export const useSetup = () => useUI((s) => (s.activeTeamId != null ? s.setups[s.activeTeamId] : undefined) ?? EMPTY_SETUP);

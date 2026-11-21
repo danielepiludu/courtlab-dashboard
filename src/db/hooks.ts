@@ -1,19 +1,66 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { compareNumbers, type Game, type Player } from './types';
+import { compareNumbers, type Game, type Player, type Team } from './types';
+import { useUI } from '@/store/ui';
 
 const sortGames = (a: Game, b: Game) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
+const sortTeams = (a: Team, b: Team) => Number(a.archived) - Number(b.archived) || b.createdAt - a.createdAt;
 
-/** Giocatori ordinati per numero di maglia. `undefined` mentre carica. */
-export function usePlayers(): Player[] | undefined {
-  return useLiveQuery(async () => (await db.players.toArray()).sort((a, b) => compareNumbers(a.number, b.number)), []);
+export const useActiveTeamId = () => useUI((s) => s.activeTeamId);
+
+/** Tutte le squadre: prima le attive (più recenti in alto), poi le archiviate. */
+export function useTeams(): Team[] | undefined {
+  return useLiveQuery(async () => (await db.teams.toArray()).sort(sortTeams), []);
 }
 
-/** Partite ordinate per data/ora crescente. `undefined` mentre carica. */
+export function useActiveTeam(): Team | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? undefined : db.teams.get(id)), [id]);
+}
+
+/** true se la squadra attiva è archiviata: tutto in sola lettura. */
+export function useReadOnly(): boolean {
+  return !!useActiveTeam()?.archived;
+}
+
+/** Giocatori della squadra attiva, ordinati per numero di maglia. `undefined` mentre carica. */
+export function usePlayers(): Player[] | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(
+    async () => (id == null ? [] : (await db.players.where('teamId').equals(id).toArray()).sort((a, b) => compareNumbers(a.number, b.number))),
+    [id],
+  );
+}
+
+/** Partite della squadra attiva in ordine cronologico. `undefined` mentre carica. */
 export function useGames(): Game[] | undefined {
-  return useLiveQuery(async () => (await db.games.toArray()).sort(sortGames), []);
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? [] : (await db.games.where('teamId').equals(id).toArray()).sort(sortGames)), [id]);
 }
 
 export function useGame(id: number | null | undefined): Game | undefined {
   return useLiveQuery(async () => (id == null ? undefined : db.games.get(id)), [id]);
+}
+
+export interface TeamCounts {
+  players: number;
+  games: number;
+  finished: number;
+}
+
+/** Conteggi per squadra (giocatori, partite, concluse). */
+export function useTeamCounts(): Record<number, TeamCounts> {
+  return (
+    useLiveQuery(async () => {
+      const out: Record<number, TeamCounts> = {};
+      const get = (id: number) => (out[id] ??= { players: 0, games: 0, finished: 0 });
+      await db.players.each((p) => void get(p.teamId).players++);
+      await db.games.each((g) => {
+        const c = get(g.teamId);
+        c.games++;
+        if (g.status === 'finished') c.finished++;
+      });
+      return out;
+    }, []) ?? {}
+  );
 }

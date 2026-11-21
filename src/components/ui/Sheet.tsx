@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cx } from '@/lib/cx';
@@ -37,10 +37,14 @@ interface SheetProps {
   footer?: ReactNode;
   /** larghezza massima del pannello */
   wide?: boolean;
+  /** stile del contenitore (es. variabili CSS per l'anteprima del tema) */
+  style?: CSSProperties;
+  /** z-index più alto, per sheet aperti sopra schermate a tutto schermo */
+  elevated?: boolean;
 }
 
 /** Bottom sheet animato con header, area scrollabile e footer fisso. */
-export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: SheetProps) {
+export function Sheet({ open, onClose, title, subtitle, children, footer, wide, style, elevated }: SheetProps) {
   const { mounted, shown } = useMountTransition(open);
   useBackClose(open, onClose);
   const latched = useLatchWhile(open, { title, subtitle, children, footer });
@@ -54,7 +58,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
 
   if (!mounted) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+    <div className={cx('fixed inset-0', elevated ? 'z-[60]' : 'z-50')} role="dialog" aria-modal="true" style={style}>
       <div
         className={cx('absolute inset-0 bg-black/65 backdrop-blur-[2px] transition-opacity duration-200', shown ? 'opacity-100' : 'opacity-0')}
         onClick={onClose}

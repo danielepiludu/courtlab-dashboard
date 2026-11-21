@@ -6,7 +6,7 @@ import { RoleBadge, STATUS_META, StatusBadge } from '@/components/ui/Badges';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/misc';
-import { usePlayers } from '@/db/hooks';
+import { useActiveTeam, usePlayers } from '@/db/hooks';
 import { newPlayer } from '@/db/repo';
 import { ROLES, STATUSES, type Player, type PlayerStatus, type Role } from '@/db/types';
 import { fmtDayMonth } from '@/lib/dates';
@@ -19,7 +19,7 @@ function PlayerRow({ p, onClick }: { p: Player; onClick: () => void }) {
       <Avatar player={p} size={60} ring />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold leading-none text-brand">{p.number !== '' ? `#${p.number}` : '—'}</span>
+          <span className="font-display text-xl font-bold leading-none text-brand-text">{p.number !== '' ? `#${p.number}` : '—'}</span>
           <b className="truncate text-[17px]">{p.name}</b>
         </div>
         <div className="mt-1.5 flex items-center gap-2">
@@ -43,6 +43,9 @@ function PlayerRow({ p, onClick }: { p: Player; onClick: () => void }) {
 
 export function PlayersScreen() {
   const players = usePlayers();
+  const team = useActiveTeam();
+  const readOnly = !!team?.archived;
+  const teamId = team?.id ?? 0;
   const [role, setRole] = useState<Role | null>(null);
   const [status, setStatus] = useState<PlayerStatus | null>(null);
   const [editing, setEditing] = useState<Player | null>(null);
@@ -54,11 +57,13 @@ export function PlayersScreen() {
     <>
       <ScreenHeader
         title="Giocatori"
-        subtitle={all.length ? `${all.length} in rosa · ${count('available')} disponibili` : 'Rosa della squadra'}
+        subtitle={all.length ? `${all.length} in rosa · ${count('available')} disponibili` : team?.name}
         right={
-          <Button variant="primary" size="sm" icon={<Plus size={18} />} onClick={() => setEditing(newPlayer())}>
-            Aggiungi
-          </Button>
+          !readOnly && (
+            <Button variant="primary" size="sm" icon={<Plus size={18} />} onClick={() => setEditing(newPlayer(teamId))}>
+              Aggiungi
+            </Button>
+          )
         }
       />
       <div className="mx-auto max-w-2xl pt-3">
@@ -95,9 +100,11 @@ export function PlayersScreen() {
               title="Nessun giocatore"
               text="Aggiungi i giocatori della squadra con foto, numero e ruolo."
               action={
-                <Button variant="primary" icon={<Plus size={20} />} onClick={() => setEditing(newPlayer())}>
-                  Aggiungi giocatore
-                </Button>
+                !readOnly && (
+                  <Button variant="primary" icon={<Plus size={20} />} onClick={() => setEditing(newPlayer(teamId))}>
+                    Aggiungi giocatore
+                  </Button>
+                )
               }
             />
           ) : list.length === 0 ? (
@@ -119,7 +126,7 @@ export function PlayersScreen() {
           <div className="h-6" />
         </div>
       </div>
-      <PlayerFormSheet player={editing} onClose={() => setEditing(null)} />
+      <PlayerFormSheet player={editing} readOnly={readOnly} onClose={() => setEditing(null)} />
     </>
   );
 }
