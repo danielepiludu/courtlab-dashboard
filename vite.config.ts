@@ -1,11 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'node:fs';
+const icons = {
+  name: 'copy-icons',
+  generateBundle(this: any) {
+    for (const f of ['icon-192.png', 'icon-512.png']) this.emitFile({ type: 'asset', fileName: f, source: fs.readFileSync(f) });
+  },
+};
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
-  plugins: [react(), VitePWA({
+  plugins: [react(), icons, VitePWA({
     registerType: 'autoUpdate',
-    includeAssets: ['icon-192.png', 'icon-512.png'],
     manifest: { name: 'Minuti Basket', short_name: 'Minuti', description: 'Minuti e carico dei giocatori', lang: 'it',
       display: 'standalone', orientation: 'any', background_color: '#0b1626', theme_color: '#0b1626',
       icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
