@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from 'react';
-import { Timer } from 'lucide-react';
+import { Clock3 } from 'lucide-react';
 import type { Player } from '@/db/types';
 import { cx } from '@/lib/cx';
 import { mmss } from './liveModel';
@@ -75,6 +75,7 @@ const m = (k: number) => `calc(var(--m) * ${k})`;
 
 /** Card in campo: dimensioni in metri di campo (--m = pixel per metro), la foto è l'elemento principale. */
 export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selected, onTap }: CardProps) {
+  const v = Math.min(100, Math.max(0, int));
   return (
     <button
       data-flip={p.id}
@@ -84,36 +85,51 @@ export const CourtCard = memo(function CourtCard({ p, name, playedMs, int, selec
         'flex h-full w-full flex-col items-center justify-between overflow-hidden border bg-surface/90 shadow-[0_8px_22px_-8px_rgba(0,0,0,.85)] backdrop-blur-[2px] transition-[box-shadow,border-color,transform] duration-200 active:scale-[.96]',
         selected ? 'border-accent shadow-glow' : 'border-white/10',
       )}
-      style={{ borderRadius: m(0.38), padding: `${m(0.18)} ${m(0.2)} ${m(0.2)}` }}
+      style={{ borderRadius: m(0.38), padding: `${m(0.16)} ${m(0.18)} ${m(0.18)}`, gap: m(0.06) }}
     >
       <div className="relative">
-        <Photo p={p} className={cx('ring-2', selected ? 'ring-accent' : 'ring-white/15')} style={{ width: m(2.25), height: m(2.25), fontSize: m(0.8) }} />
+        <Photo p={p} className={cx('ring-2', selected ? 'ring-accent' : 'ring-white/15')} style={{ width: m(2.05), height: m(2.05), fontSize: m(0.75) }} />
         <span
           className="absolute grid place-items-center rounded-full bg-brand font-display font-extrabold leading-[1.35] text-on-brand shadow"
-          style={{ fontSize: `max(11px, ${m(0.46)})`, minWidth: m(0.8), padding: `0 ${m(0.1)}`, right: m(-0.18), bottom: m(-0.08) }}
+          style={{ fontSize: `max(11px, ${m(0.44)})`, minWidth: m(0.78), padding: `0 ${m(0.1)}`, right: m(-0.18), bottom: m(-0.08) }}
         >
           {p.number || '–'}
         </span>
       </div>
-      <b className="w-full truncate text-center leading-[1.15]" style={{ fontSize: `max(10.5px, ${m(0.42)})` }}>
+      <b className="w-full truncate text-center leading-[1.1]" style={{ fontSize: `max(10.5px, ${m(0.4)})` }}>
         {name}
       </b>
-      <div className="flex w-full items-baseline justify-between leading-none" style={{ padding: `0 ${m(0.06)}` }}>
-        <span className="font-display font-bold tabular" style={{ fontSize: `max(12.5px, ${m(0.56)})` }}>
-          {mmss(playedMs)}
-        </span>
-        <span className="font-display font-bold tabular" style={{ fontSize: `max(11px, ${m(0.44)})`, color: intColor(int) }} title="INT">
-          {Math.round(int)}
-        </span>
+      {/* Minuti giocati: in evidenza */}
+      <div
+        className="flex w-full items-center justify-center rounded-md bg-black/55 font-display font-extrabold leading-none text-white ring-1 ring-white/15 tabular"
+        style={{ fontSize: `max(16px, ${m(0.74)})`, padding: `${m(0.07)} 0`, gap: m(0.1), borderRadius: m(0.2) }}
+        title="Minuti giocati"
+      >
+        <Clock3 size="0.62em" strokeWidth={3} className="shrink-0 text-ink-muted" />
+        {mmss(playedMs)}
       </div>
-      <div className="w-full overflow-hidden rounded-full bg-white/10" style={{ height: `max(4px, ${m(0.14)})` }}>
-        <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${Math.min(100, Math.max(0, int))}%`, background: intColor(int) }} />
+      <div className="flex w-full items-center" style={{ gap: m(0.12) }}>
+        <div className="flex-1 overflow-hidden rounded-full bg-white/10" style={{ height: `max(4px, ${m(0.14)})` }}>
+          <div className="h-full rounded-full transition-[width,background-color] duration-700 ease-out" style={{ width: `${v}%`, background: intColor(v) }} />
+        </div>
+        <span className="font-display font-bold leading-none tabular" style={{ fontSize: `max(11px, ${m(0.4)})`, color: intColor(v) }} title="INT">
+          {Math.round(v)}
+        </span>
       </div>
     </button>
   );
 });
 
-/** Scheda in panchina (griglia a 2 colonne): mostra anche il tempo reale di riposo. */
+function Stat({ label, value, tone }: { label: string; value: string; tone: 'ink' | 'accent' | 'faint' }) {
+  return (
+    <div className="min-w-0 flex-1 rounded-lg bg-black/40 px-1.5 pb-1 pt-0.5 ring-1 ring-white/10">
+      <div className="truncate text-[9px] font-bold uppercase text-ink-muted">{label}</div>
+      <div className={cx('font-display text-[19px] font-extrabold leading-none tabular', tone === 'accent' ? 'text-accent-light' : tone === 'faint' ? 'text-ink-faint' : 'text-white')}>{value}</div>
+    </div>
+  );
+}
+
+/** Scheda in panchina (griglia a 2 colonne): minuti giocati e tempo reale in panchina ben leggibili. */
 export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, selected, onTap, restMs, started }: CardProps & { restMs: number; started: boolean }) {
   return (
     <button
@@ -130,17 +146,11 @@ export const BenchCard = memo(function BenchCard({ p, name, playedMs, int, selec
           <Photo p={p} className={cx('h-11 w-11 text-base ring-2 [@media(min-height:600px)]:h-14 [@media(min-height:600px)]:w-14', selected ? 'ring-accent' : 'ring-white/10')} />
           <span className="absolute -bottom-1 -right-1.5 grid min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[12px] font-extrabold leading-[1.4] text-on-brand">{p.number || '–'}</span>
         </div>
-        <div className="min-w-0 flex-1">
-          <b className="block truncate text-[14px] leading-tight">{name}</b>
-          <div className="font-display text-[15px] font-bold leading-tight tabular">
-            <span className="mr-1 font-sans text-[10px] font-bold tracking-wider text-ink-muted">MIN</span>
-            {mmss(playedMs)}
-          </div>
-          <div className={cx('flex items-center gap-1 font-display text-[14px] font-bold leading-tight tabular', started ? 'text-accent-light' : 'text-ink-faint')} title="Tempo reale in panchina">
-            <Timer size={12} strokeWidth={2.5} />
-            {mmss(restMs)}
-          </div>
-        </div>
+        <b className="min-w-0 flex-1 truncate text-[15px] leading-tight">{name}</b>
+      </div>
+      <div className="flex gap-1">
+        <Stat label="Minuti" value={mmss(playedMs)} tone="ink" />
+        <Stat label="Panchina" value={mmss(restMs)} tone={started ? 'accent' : 'faint'} />
       </div>
       <IntBar value={int} />
     </button>

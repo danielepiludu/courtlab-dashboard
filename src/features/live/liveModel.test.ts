@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Role } from '@/db/types';
-import { addScore, adjustClock, createLive, mmss, periodOver, restMs, settle, substitute, toggleClock, undoScore, type LiveState } from './liveModel';
+import { addScore, adjustClock, createLive, intNow, normalizeLive, mmss, periodOver, restMs, settle, substitute, toggleClock, undoScore, type LiveState } from './liveModel';
 
 const MIN = 60_000;
 const roles: Record<number, Role> = { 1: 'PG', 2: 'SG', 3: 'SF', 4: 'PF', 5: 'C', 6: 'PG', 7: 'C', 8: 'SF' };
@@ -142,5 +142,97 @@ describe('correzione ±5 secondi', () => {
   it('non disponibile prima del primo Start', () => {
     const s = make();
     expect(adjustClock(s, 5 * SEC, T0)).toBe(s);
+  });
+});
+
+describe('INT durante la partita (Fase 3)', () => {
+  const SEC = 1000;
+  it('prima del primo Start l\'INT è fermo a 0', () => {
+    const s = settle(make(), T0 + 20 * MIN);
+    expect(intNow(s, 1, T0 + 20 * MIN)).toBe(0);
+  });
+  it('in campo a cronometro in corso sale secondo la formula; la panchina resta a 0', () => {
+    const now = T0 + 5 * MIN;
+    const s = settle(toggleClock(make(), T0), now);
+    expect(intNow(s, 1, now)).toBeCloseTo(26.96, 1);
+    expect(intNow(s, 6, now)).toBe(0);
+    expect(s.players[1].peak).toBeCloseTo(26.96, 1);
+  });
+  it('in campo a cronometro fermo scende piano (τ 15 min)', () => {
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + 5 * MIN); // stop
+    const v = settle(s, T0 + 8 * MIN); // 3 min di timeout
+    expect(intNow(v, 1, T0 + 8 * MIN)).toBeCloseTo(26.96 * Math.exp(-3 / 15), 1);
+  });
+  it('in panchina scende dal valore di uscita in tempo reale, anche a cronometro fermo', () => {
+    let s = toggleClock(make(), T0);
+    s = { ...s, players: { ...s.players, 5: { ...s.players[5], int: 80 } } };
+    s = toggleClock(s, T0); // stop subito (80 resta)
+    s = substitute(s, [5], [7], roles, T0);
+    const v = settle(s, T0 + 6 * MIN);
+    expect(Math.round(intNow(v, 5, T0 + 6 * MIN))).toBe(29);
+  });
+  it('chi rientra parte dal valore recuperato; i minuti consecutivi ripartono, i totali no', () => {
+    let s = toggleClock(make(), T0);
+    s = substitute(s, [5], [7], roles, T0 + 8 * MIN); // C esce dopo 8'
+    const exit = s.players[5].int;
+    s = substitute(s, [7], [5], roles, T0 + 12 * MIN); // rientra dopo 4' di panchina
+    expect(s.players[5].int).toBeCloseTo(exit * Math.exp(-4 / 6), 6);
+    expect(s.players[5].stintMs).toBe(0);
+    expect(s.players[5].playedMs).toBe(8 * MIN);
+    expect(s.players[5].entries).toBe(2);
+  });
+  it('INT sempre tra 0 e 100', () => {
+    let s = toggleClock(make(), T0);
+    for (let p = 0; p < 6; p++) s = toggleClock(settle(s, s.settledAt + 11 * MIN), s.settledAt + 11 * MIN);
+    const v = settle(s, s.settledAt + 3 * MIN);
+    for (const id of v.called) {
+      const x = intNow(v, id, s.settledAt + 3 * MIN);
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThanOrEqual(100);
+    }
+    expect(v.players[1].peak).toBe(100);
+  });
+  it('ricostruzione dopo una chiusura: stato salvato (JSON) + ora attuale danno lo stesso INT', () => {
+    let s = toggleClock(make(), T0);
+    s = substitute(s, [2], [6], roles, T0 + 3 * MIN);
+    const saved = JSON.parse(JSON.stringify(s)) as LiveState;
+    const t = T0 + 7 * MIN + 12 * SEC;
+    const a = settle(s, t);
+    const b = settle(saved, t);
+    for (const id of s.called) expect(intNow(b, id, t)).toBeCloseTo(intNow(a, id, t), 9);
+  });
+  it('assestare spesso o una volta sola dà lo stesso risultato', () => {
+    let s = toggleClock(make(), T0);
+    let many = s;
+    for (let k = 1; k <= 40; k++) many = settle(many, T0 + k * 15 * SEC);
+    s = settle(s, T0 + 10 * MIN);
+    expect(many.players[1].int).toBeCloseTo(s.players[1].int, 6);
+    expect(many.samples.length).toBe(s.samples.length);
+  });
+  it('campioni ogni 30 s per il grafico (il primo a 0 al fischio d\'inizio)', () => {
+    const s = settle(toggleClock(make(), T0), T0 + 5 * MIN);
+    expect(s.samples.length).toBe(11);
+    expect(s.samples[0].v[1]).toBe(0);
+    expect(s.samples[10].v[1]).toBeCloseTo(27, 0);
+    expect(s.samples[10].on).toContain(1);
+  });
+  it('±5 secondi: avanti fa salire l\'INT di chi è in campo, indietro lo fa scendere', () => {
+    let s = toggleClock(make(), T0);
+    s = toggleClock(s, T0 + 4 * MIN);
+    const base = s.players[1].int;
+    const fwd = adjustClock(s, 5 * SEC, T0 + 4 * MIN);
+    const back = adjustClock(s, -5 * SEC, T0 + 4 * MIN);
+    expect(fwd.players[1].int).toBeGreaterThan(base);
+    expect(back.players[1].int).toBeLessThan(base);
+  });
+  it('stati salvati dalla versione precedente vengono completati', () => {
+    const old = make() as unknown as Record<string, unknown>;
+    delete old.samples;
+    delete old.startedAt;
+    delete old.nextSampleAt;
+    const n = normalizeLive(old as unknown as LiveState);
+    expect(n.samples).toEqual([]);
+    expect(n.players[1].int).toBe(0);
   });
 });
