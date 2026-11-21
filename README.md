@@ -15,11 +15,13 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 
 ## Schermata partita
 
-- Mezzo campo FIBA in SVG su **parquet**, canestro a destra, **logo della squadra attiva nel cerchio di centrocampo**, pitturato nel colore della squadra con bordo d'accento.
-- 5 in campo: 2 lunghi nel pitturato, 3 esterni fuori dall'arco (punta e ali). Le posizioni sono verificate da test (mai sovrapposte).
-- Colonna **REST** a sinistra con tempo reale di riposo, che scorre anche a cronometro fermo.
+- Mezzo campo FIBA **verticale** (canestro in alto) su **parquet**: il bordo campo ha il colore della squadra e, ai lati, il **logo della squadra attiva**; quando c'è spazio in altezza (tablet) compare anche il cerchio di centrocampo col logo. Pitturato nel colore della squadra con bordo d'accento.
+- 5 in campo: 2 lunghi nel pitturato (sotto al ferro, che resta visibile), 3 esterni fuori dall'arco (punta e ali). Le posizioni sono verificate da test (mai sovrapposte).
+- **Panchina** a sinistra, stretta, con schede su 2 colonne: minuti giocati e tempo reale in panchina, che scorre anche a cronometro fermo.
 - Timer a timestamp: tutto fermo fino al primo Start; Q1-Q4 da 10:00, OT da 5:00; a fine periodo si ferma a 00:00 e Start avvia il successivo.
+- Pulsanti **±5 secondi** accanto al cronometro: correggono il tempo di gioco e di conseguenza i minuti dei giocatori in campo e i tempi in panchina.
 - Cambi: selezione multipla, "Conferma cambio" solo con numeri uguali (1-1, 2-2…), animazione, funziona anche a cronometro fermo.
+- Punteggio con **animazioni** accanto al numero quando si segna (+1/+2/+3, scintille sul +3) o si annulla.
 - Lo stato si salva a ogni azione: chiudendo l'app per sbaglio la partita riprende esattamente da dove era. Il tasto Indietro apre il menu invece di uscire.
 
 ## Comandi
@@ -99,6 +101,6 @@ npx cap open android      # Android Studio → Build → Build APK
 ## Stato delle fasi
 
 - [x] **Fase 1** — scaffolding, multi-squadra con tema dinamico, primo substrato (Home, Giocatori, Partita, Resoconti), persistenza, backup
-- [x] **Fase 2** — schermata partita: campo in parquet con logo della squadra, card, REST, timer, cambi con conferma
+- [x] **Fase 2** — schermata partita: campo verticale in parquet con logo della squadra, card, panchina, timer con ±5 s, cambi con conferma, animazioni punteggio
 - [ ] **Fase 3** — motore INT con test automatici
 - [ ] **Fase 4** — resoconto finale, PDF, tab Resoconti completa

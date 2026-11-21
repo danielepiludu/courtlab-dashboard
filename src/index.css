@@ -225,6 +225,31 @@
   100% { transform: scale(1); }
 }
 .anim-bump { animation: bump 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+
+/* --- Animazioni del punteggio --- */
+@keyframes score-roll {
+  0% { transform: translateY(45%) scale(0.85); opacity: 0.25; }
+  55% { transform: translateY(-6%) scale(1.18); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+.score-roll { animation: score-roll 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes score-ring {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.score-ring { animation: score-ring 0.7s ease-out forwards; }
+@keyframes score-pop {
+  0% { transform: translate(-8px, -30%) scale(0.4); opacity: 0; }
+  16% { transform: translate(0, -60%) scale(1.3); opacity: 1; }
+  32% { transform: translate(2px, -65%) scale(1); opacity: 1; }
+  100% { transform: translate(10px, -150%) scale(0.9); opacity: 0; }
+}
+.score-pop { animation: score-pop 1.25s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+@keyframes score-spark {
+  0% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(28px) scale(0.3); opacity: 0; }
+}
+.score-spark { animation: score-spark 0.75s ease-out 0.1s both; }
 .anim-slide-l { animation: slide-l 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 .anim-slide-r { animation: slide-r 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 
