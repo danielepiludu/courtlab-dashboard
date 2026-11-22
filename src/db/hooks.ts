@@ -64,3 +64,15 @@ export function useTeamCounts(): Record<number, TeamCounts> {
     }, []) ?? {}
   );
 }
+
+/** Sedute della squadra attiva (più recenti prima). */
+export function useSessions(): import('./types').TrainingSession[] | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? [] : (await db.sessions.where('teamId').equals(id).toArray()).sort((a, b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))), [id]);
+}
+
+/** Tutti gli RPE della squadra attiva. */
+export function useRpeEntries(): import('./types').RpeEntry[] | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? [] : db.rpe.where('teamId').equals(id).toArray()), [id]);
+}

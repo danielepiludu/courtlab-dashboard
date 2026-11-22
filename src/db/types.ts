@@ -103,3 +103,34 @@ export function compareNumbers(a: string, b: string): number {
   const nb = b === '' ? 999 : Number(b);
   return na - nb || a.length - b.length;
 }
+
+/** Seduta di allenamento per l'RPE (session-RPE). La durata la inserisce lo staff. */
+export type SessionType = 'basket';
+export const SESSION_TYPE_LABEL: Record<SessionType, string> = { basket: 'Allenamento tecnico' };
+
+export interface TrainingSession {
+  id?: number;
+  teamId: number;
+  /** YYYY-MM-DD */
+  date: string;
+  type: SessionType;
+  /** durata in minuti (TEMPO del foglio) */
+  minutes: number;
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** RPE di un atleta in una seduta. TL = RPE × minuti (della seduta, salvo correzione per l'atleta). */
+export interface RpeEntry {
+  id?: number;
+  teamId: number;
+  sessionId: number;
+  playerId: number;
+  /** 0–10 (scala CR-10); null = nessuna risposta */
+  rpe: number | null;
+  /** minuti per questo atleta se diversi da quelli della seduta (es. uscito prima) */
+  minutes: number | null;
+  source: 'staff' | 'atleta' | 'import';
+  updatedAt: number;
+}

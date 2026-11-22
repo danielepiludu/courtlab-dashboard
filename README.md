@@ -63,6 +63,26 @@ Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una 
 - Chiudendo il resoconto si torna al primo substrato. La partita risulta conclusa nel calendario e il resoconto si riapre in qualsiasi momento dalla tab **Resoconti** (o toccando la partita nella Home).
 - I resoconti sono salvati nella tabella `reports` con un'istantanea dei convocati: modificare o eliminare un giocatore dopo non cambia il resoconto. Sono inclusi nel backup.
 
+## RPE e carico interno (sRPE)
+
+Tab **RPE** (sola lettura per le squadre archiviate):
+
+- **Sedute**: `+ Seduta` crea un allenamento tecnico di basket con data e durata decise dallo staff. Toccando un atleta si sceglie l'RPE sulla scala CR-10 (0 → 10, con 0,5) e, se serve, minuti diversi per quell'atleta; si passa da solo al prossimo senza risposta. Per ogni seduta: risposte x/N, RPE medio, TL medio.
+- **Importa Excel**: si sceglie il foglio sRPE scaricato da Google Sheets in `.xlsx` (colonne NOME ATLETA, DATA, RPE, TEMPO). Anteprima con sedute, RPE e abbinamento nomi → giocatori (anche solo per cognome); i nomi senza corrispondenza diventano nuovi giocatori. Ogni data diventa una seduta, la durata è quella più frequente del giorno.
+- **Analisi carico**: per la squadra, l'ultimo Work Load di ogni atleta (sopra 1,3 / in zona / sotto 0,8); per l'atleta, grafico come nel foglio (barre TL, media personale, media squadra, Work Load sull'asse destro 0–2,5, limiti 1,3 e 0,8) e tabella giorno per giorno. La finestra della media mobile è regolabile (predefinita 7 giorni).
+
+Formule identiche al foglio (verificate su tutte le 43 date in `src/engine/load.test.ts`):
+
+| Indicatore | Calcolo |
+|---|---|
+| TL | RPE × minuti |
+| TL del giorno | somma dei TL dell'atleta nella data |
+| Media personale | media dei TL del giorno > 0 dell'atleta negli ultimi N giorni di calendario |
+| Media squadra | media di tutti i TL della squadra negli ultimi N giorni |
+| Work Load (A:C) | TL del giorno ÷ media personale; nei giorni senza TL resta il valore precedente |
+
+Sedute e RPE sono nelle tabelle `sessions` e `rpe` (schema Dexie v4) e sono inclusi nel backup.
+
 ## Comandi
 
 ```bash
@@ -124,7 +144,8 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │   ├── engine/
 │   │   ├── intConfig.ts             parametri e spiegazione del modello INT
 │   │   ├── int.ts                   motore INT (funzioni pure)
-│   │   └── int.test.ts
+│   │   ├── int.test.ts
+│   │   └── load.ts (+ test)         TL, medie mobili e Work Load (sRPE)
 │   ├── theme/
 │   │   ├── color.ts                 conversioni, luminanza e contrasto WCAG
 │   │   ├── palette.ts (+ test)      palette scura dai due colori della squadra
@@ -132,8 +153,8 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │   │   ├── apply.ts                 variabili CSS, logo, istantanea per l'avvio
 │   │   └── ThemeController.tsx      applica il tema della squadra attiva
 │   ├── db/
-│   │   ├── types.ts                 Team, Player, Game, GameReport
-│   │   ├── db.ts                    schema Dexie v3 (migrazioni dalle versioni precedenti)
+│   │   ├── types.ts                 Team, Player, Game, GameReport, TrainingSession, RpeEntry
+│   │   ├── db.ts                    schema Dexie v4 (migrazioni dalle versioni precedenti)
 │   │   ├── hooks.ts                 query reattive filtrate per squadra attiva
 │   │   └── repo.ts                  CRUD, squadre (duplica/archivia/elimina), backup, dati di esempio
 │   ├── store/
@@ -150,7 +171,8 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │       ├── live/                    schermata partita: liveModel (+ test), campo SVG, geometria (+ test),
 │       │                            card campo/panchina, debug INT
 │       ├── report/                  riepilogo (+ test), schermata resoconto, grafico INT, PDF (+ test)
-│       └── reports/                 tab Resoconti
+│       ├── reports/                 tab Resoconti
+│       └── rpe/                     tab RPE: sedute, scala CR-10, analisi carico, grafico, import Excel (+ test)
 └── .github/workflows/deploy.yml     test + build + GitHub Pages
 ```
 
@@ -160,3 +182,10 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 - [x] **Fase 2** — schermata partita: campo verticale in parquet con logo della squadra, card, panchina, timer con ±5 s, cambi con conferma, animazioni punteggio
 - [x] **Fase 3** — motore INT 0–1 con test automatici e vista debug
 - [x] **Fase 4** — resoconto finale, grafici INT, export PDF, tab Resoconti completa
+
+Carico interno (RPE):
+
+- [x] **Fase 1** — sedute, inserimento RPE, calcoli del foglio sRPE, grafico, import da Excel
+- [ ] **Fase 2** — sincronizzazione tra dispositivi dello staff con account
+- [ ] **Fase 3** — link per gli atleti per inserire l'RPE senza installare nulla
+- [ ] **Fase 4** — report ed export del carico (PDF/Excel), integrazione minuti e INT
