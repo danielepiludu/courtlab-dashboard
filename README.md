@@ -1,4 +1,4 @@
-# DP Dashboard
+# Courtlab
 
 PWA Android installabile e offline per allenatori di basket: gestisce **più squadre** (una per stagione) e monitora minuti giocati e carico di fatica (INT) dei giocatori durante la partita. Interfaccia in italiano.
 
@@ -71,7 +71,7 @@ npm run dev          # sviluppo su http://localhost:5173 (raggiungibile dal tele
 npm test             # test automatici (vitest): tema, timer, INT, campo, resoconto, PDF
 npm run build        # typecheck + build di produzione in dist/
 npm run preview      # serve la build (con service worker) su http://localhost:4173
-npm run icons        # rigenera logo e icone da assets/logo-source.png (Python 3 + Pillow)
+npm run icons        # rigenera logo squadra (assets/logo-source.png) e icone app (assets/app-icon.svg); serve Python+Pillow e Playwright
 ```
 
 ## Deploy su GitHub Pages
@@ -95,7 +95,7 @@ Richiede Android Studio (con SDK) sul computer.
 
 ```bash
 npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "DP Dashboard" it.dpdashboard.app --web-dir dist
+npx cap init "Courtlab" it.courtlab.app --web-dir dist
 VITE_BASE=./ npm run build
 npx cap add android
 npx cap sync android
@@ -107,11 +107,14 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 ## Struttura
 
 ```
-├── assets/logo-source.png           logo originale della squadra predefinita (non distribuito)
+├── assets/
+│   ├── logo-source.png              logo originale della squadra predefinita (non distribuito)
+│   └── app-icon.svg                 icona dell'app Courtlab (sorgente vettoriale)
 ├── public/
 │   ├── logo.png                     logo Don Bosco ritagliato, sfondo trasparente
 │   └── icons/                       icone PWA 192/512, maskable, apple-touch, favicon
-├── scripts/make-icons.py            genera logo e icone
+├── scripts/make-icons.py            genera il logo della squadra predefinita
+├── scripts/make-app-icons.cjs       genera le icone dell'app dall'SVG
 ├── index.html                       applica subito il tema dell'ultima squadra (nessun lampo di colori)
 ├── vite.config.ts                   base path, PWA (manifest + service worker offline), test
 ├── src/

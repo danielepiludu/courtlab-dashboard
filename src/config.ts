@@ -3,8 +3,8 @@
  * I parametri del motore INT vivono in `engine/intConfig.ts` (Fase 3).
  */
 export const APP = {
-  name: 'DP Dashboard',
-  version: '1.5.0',
+  name: 'Courtlab',
+  version: '1.6.0',
 } as const;
 
 /** Squadra presente al primo avvio */

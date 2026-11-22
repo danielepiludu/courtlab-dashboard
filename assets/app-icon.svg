@@ -1,0 +1,18 @@
+<!-- Icona Courtlab: pallone attraversato da un grafico che sale dal bianco al rosso. Sorgente delle icone (npm run icons). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2c4f"/><stop offset="1" stop-color="#06162b"/></linearGradient>
+    <radialGradient id="ball" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#ff9e45"/><stop offset="1" stop-color="#d9480f"/></radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#ffd60a"/><stop offset="1" stop-color="#ff2e2e"/></linearGradient>
+    <clipPath id="clip"><circle cx="50" cy="50" r="30"/></clipPath>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg)"/>
+  <g id="art" transform="translate(50 50) scale(SCALE) translate(-50 -50)">
+    <circle cx="50" cy="50" r="30" fill="url(#ball)"/>
+    <g clip-path="url(#clip)" fill="none" stroke="#5a2207" stroke-width="2.2"><path d="M50 20v60"/><path d="M33 24c10 10 10 42 0 52M67 24c-10 10-10 42 0 52"/></g>
+    <g clip-path="url(#clip)"><rect x="20" y="58" width="60" height="22" fill="#06162b" opacity=".35"/></g>
+    <path d="M14 66 L33 66 L42 52 L52 60 L63 40 L72 46 L86 30" fill="none" stroke="#06162b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14 66 L33 66 L42 52 L52 60 L63 40 L72 46 L86 30" fill="none" stroke="url(#line)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="86" cy="30" r="4.5" fill="#ff2e2e" stroke="#06162b" stroke-width="2"/>
+  </g>
+</svg>

@@ -35,7 +35,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     const blob = await exportBackup(activeTeamId);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `dp-dashboard-backup-${todayISO()}.json`;
+    a.download = `courtlab-backup-${todayISO()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     toast('Backup esportato', 'success');
