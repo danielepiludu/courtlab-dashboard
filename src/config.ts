@@ -3,8 +3,8 @@
  * I parametri del motore INT vivono in `engine/intConfig.ts` (Fase 3).
  */
 export const APP = {
-  name: 'Basket Monitor',
-  version: '1.4.0',
+  name: 'DP Dashboard',
+  version: '1.5.0',
 } as const;
 
 /** Squadra presente al primo avvio */

@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Database, Download, Settings2, Sparkles, Trash, Upload } from 'lucide-react';
 import { Sheet } from './ui/Sheet';
-import { TeamLogo } from './TeamLogo';
 import { exportBackup, importBackup, loadDemoTeam, wipeAll } from '@/db/repo';
 import { useActiveTeam } from '@/db/hooks';
 import { confirmDialog, toast } from '@/store/feedback';
@@ -36,7 +35,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     const blob = await exportBackup(activeTeamId);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `basket-monitor-backup-${todayISO()}.json`;
+    a.download = `dp-dashboard-backup-${todayISO()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     toast('Backup esportato', 'success');
@@ -67,7 +66,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <Sheet open={open} onClose={onClose} title="Impostazioni" subtitle="Dati salvati solo su questo dispositivo">
       <div className="mb-5 flex items-center gap-4 rounded-2xl bg-bar p-4">
-        <TeamLogo team={team} size={56} />
+        <img src={`${import.meta.env.BASE_URL}icons/app-logo.png`} alt={APP.name} width={56} height={56} className="h-14 w-14 shrink-0" draggable={false} />
         <div className="min-w-0">
           <b className="font-display text-xl tracking-wide">{APP.name}</b>
           <div className="truncate text-[13px] text-ink-muted">
