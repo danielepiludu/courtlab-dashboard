@@ -1,11 +1,17 @@
-"""Genera logo e icone PWA a partire da assets/logo-source.png.
+"""Genera il logo della squadra predefinita e le icone dell'app.
 
-- public/logo.png            cerchio del logo ritagliato, sfondo trasparente (768px)
-- public/icons/icon-192.png  icona "any" su sfondo navy
-- public/icons/icon-512.png  icona "any" su sfondo navy
-- public/icons/maskable-512.png  icona maskable (logo nella safe zone 80%)
-- public/icons/apple-touch-icon.png  180px su sfondo navy
-- public/icons/favicon-64.png  favicon trasparente
+Sorgenti:
+- assets/logo-source.png        logo Pallacanestro Don Bosco Livorno (squadra predefinita)
+- assets/app-icon-source.webp   icona dell'app DP Dashboard (cronometro + pallone, "DP")
+
+Uscite:
+- public/logo.png                  logo Don Bosco ritagliato, sfondo trasparente (768px)
+- public/icons/icon-192.png        icona app "any" (sfondo nero)
+- public/icons/icon-512.png        icona app "any" (sfondo nero)
+- public/icons/maskable-512.png    icona app maskable (contenuto nella safe zone 80%)
+- public/icons/apple-touch-icon.png  180px
+- public/icons/favicon-64.png      favicon
+- public/icons/app-logo.png        icona app per l'interfaccia (256px, angoli arrotondati, trasparente fuori)
 
 Uso:  npm run icons   (richiede Python 3 + Pillow)
 """
@@ -13,12 +19,14 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "assets" / "logo-source.png"
+TEAM_SRC = ROOT / "assets" / "logo-source.png"
+APP_SRC = ROOT / "assets" / "app-icon-source.webp"
 OUT = ROOT / "public"
-NAVY = (0, 40, 85, 255)  # #002855
-SS = 4  # supersampling per bordi morbidi della maschera
+BLACK = (0, 0, 0, 255)
+SS = 4  # supersampling per bordi morbidi delle maschere
 
 
+# ---------- Logo della squadra predefinita ----------
 def find_circle(img: Image.Image) -> tuple[float, float, float]:
     """Trova centro e raggio del disco navy (esclude l'anello bianco esterno)."""
     px = img.load()
@@ -34,17 +42,13 @@ def find_circle(img: Image.Image) -> tuple[float, float, float]:
     cx = w // 2
     top = next(y for y in range(h) if is_navy(px[cx, y]))
     bottom = next(y for y in range(h - 1, -1, -1) if is_navy(px[cx, y]))
-    center_x = (left + right) / 2
-    center_y = (top + bottom) / 2
-    radius = min(right - left, bottom - top) / 2
-    return center_x, center_y, radius
+    return (left + right) / 2, (top + bottom) / 2, min(right - left, bottom - top) / 2
 
 
 def circular_logo(src: Image.Image) -> Image.Image:
     cx, cy, r = find_circle(src)
-    r -= 0.5  # leggero margine interno per eliminare l'alone bianco
-    box = (round(cx - r), round(cy - r), round(cx + r), round(cy + r))
-    crop = src.crop(box)
+    r -= 0.5
+    crop = src.crop((round(cx - r), round(cy - r), round(cx + r), round(cy + r)))
     size = crop.size[0]
     mask = Image.new("L", (size * SS, size * SS), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, size * SS - 1, size * SS - 1), fill=255)
@@ -54,32 +58,58 @@ def circular_logo(src: Image.Image) -> Image.Image:
     return out
 
 
-def on_navy(logo: Image.Image, size: int, scale: float) -> Image.Image:
-    bg = Image.new("RGBA", (size, size), NAVY)
-    d = round(size * scale)
-    lg = logo.resize((d, d), Image.LANCZOS)
-    off = (size - d) // 2
-    bg.alpha_composite(lg, (off, off))
-    return bg
-
-
-def save(img: Image.Image, path: Path) -> None:
-    """Salva come PNG a palette (colori piatti del logo -> file molto più leggeri)."""
+def save_palette(img: Image.Image, path: Path) -> None:
+    """PNG a palette (colori piatti -> file leggeri)."""
     img.quantize(colors=256, method=Image.FASTOCTREE, dither=Image.Dither.NONE).save(path, optimize=True)
 
 
+# ---------- Icona dell'app ----------
+def app_content(src: Image.Image) -> Image.Image:
+    """Ritaglia il disegno (cronometro + pallone) dallo sfondo nero."""
+    # lo sfondo dell'originale è "quasi nero": lo porto a nero pieno per non vedere i bordi del ritaglio
+    rgb = src.convert("RGB").point(lambda v: 0 if v < 14 else v)
+    box = rgb.convert("L").point(lambda v: 255 if v > 40 else 0).getbbox()
+    pad = 6
+    box = (max(0, box[0] - pad), max(0, box[1] - pad), min(rgb.width, box[2] + pad), min(rgb.height, box[3] + pad))
+    return rgb.crop(box).convert("RGBA")
+
+
+def on_black(content: Image.Image, size: int, scale: float) -> Image.Image:
+    """Disegno centrato su sfondo nero pieno; `scale` = lato maggiore rispetto all'icona."""
+    bg = Image.new("RGBA", (size, size), BLACK)
+    k = scale * size / max(content.size)
+    c = content.resize((round(content.width * k), round(content.height * k)), Image.LANCZOS)
+    bg.alpha_composite(c, ((size - c.width) // 2, (size - c.height) // 2))
+    return bg
+
+
+def rounded(img: Image.Image, radius_ratio: float = 0.22) -> Image.Image:
+    size = img.size[0]
+    mask = Image.new("L", (size * SS, size * SS), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size * SS - 1, size * SS - 1), radius=round(size * SS * radius_ratio), fill=255)
+    out = img.copy()
+    out.putalpha(mask.resize((size, size), Image.LANCZOS))
+    return out
+
+
+def save_png(img: Image.Image, path: Path) -> None:
+    img.save(path, optimize=True)
+
+
 def main():
-    src = Image.open(SRC).convert("RGBA")
-    logo = circular_logo(src)
     (OUT / "icons").mkdir(parents=True, exist_ok=True)
 
-    save(logo.resize((768, 768), Image.LANCZOS), OUT / "logo.png")
-    save(logo.resize((64, 64), Image.LANCZOS), OUT / "icons" / "favicon-64.png")
-    save(on_navy(logo, 192, 0.94), OUT / "icons" / "icon-192.png")
-    save(on_navy(logo, 512, 0.94), OUT / "icons" / "icon-512.png")
-    save(on_navy(logo, 512, 0.80), OUT / "icons" / "maskable-512.png")
-    save(on_navy(logo, 180, 0.90), OUT / "icons" / "apple-touch-icon.png")
-    print("Icone generate in", OUT)
+    team = circular_logo(Image.open(TEAM_SRC).convert("RGBA"))
+    save_palette(team.resize((768, 768), Image.LANCZOS), OUT / "logo.png")
+
+    content = app_content(Image.open(APP_SRC))
+    save_png(on_black(content, 192, 0.84).convert("RGB"), OUT / "icons" / "icon-192.png")
+    save_png(on_black(content, 512, 0.84).convert("RGB"), OUT / "icons" / "icon-512.png")
+    save_png(on_black(content, 512, 0.64).convert("RGB"), OUT / "icons" / "maskable-512.png")
+    save_png(on_black(content, 180, 0.8).convert("RGB"), OUT / "icons" / "apple-touch-icon.png")
+    save_png(rounded(on_black(content, 64, 0.92)), OUT / "icons" / "favicon-64.png")
+    save_png(rounded(on_black(content, 256, 0.84)), OUT / "icons" / "app-logo.png")
+    print("Logo e icone generati in", OUT)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Basket Monitor
+# DP Dashboard
 
 PWA Android installabile e offline per allenatori di basket: gestisce **più squadre** (una per stagione) e monitora minuti giocati e carico di fatica (INT) dei giocatori durante la partita. Interfaccia in italiano.
 
@@ -95,7 +95,7 @@ Richiede Android Studio (con SDK) sul computer.
 
 ```bash
 npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "Basket Monitor" it.basketmonitor.app --web-dir dist
+npx cap init "DP Dashboard" it.dpdashboard.app --web-dir dist
 VITE_BASE=./ npm run build
 npx cap add android
 npx cap sync android

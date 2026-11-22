@@ -27,9 +27,12 @@ export function Splash({ leaving }: { leaving: boolean }) {
           <TeamLogo team={logoTeam} size={176} />
         </div>
       </div>
-      <div className="anim-rise mt-8 text-center" style={{ animationDelay: '.25s' }}>
-        <div className="font-display text-[34px] font-extrabold uppercase leading-none tracking-[0.06em]">Basket</div>
-        <div className="mt-1.5 font-display text-lg font-semibold uppercase tracking-[0.32em] text-brand-text">Monitor</div>
+      <div className="anim-rise mt-8 flex items-center gap-3" style={{ animationDelay: '.25s' }}>
+        <img src={`${import.meta.env.BASE_URL}icons/app-logo.png`} alt="" width={52} height={52} className="h-[52px] w-[52px] drop-shadow-[0_6px_16px_rgba(0,0,0,.6)]" draggable={false} />
+        <div className="text-left">
+          <div className="font-display text-[34px] font-extrabold uppercase leading-none tracking-[0.06em]">DP</div>
+          <div className="mt-1 font-display text-lg font-semibold uppercase leading-none tracking-[0.3em] text-brand-text">Dashboard</div>
+        </div>
       </div>
       <div className="absolute bottom-10 max-w-[80%] truncate px-6 text-center text-xs font-medium uppercase tracking-[0.2em] text-ink-faint" style={{ marginBottom: 'var(--safe-bottom)' }}>
         {team.name || APP.name}

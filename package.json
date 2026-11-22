@@ -1,9 +1,9 @@
 {
-  "name": "basket-monitor",
+  "name": "dp-dashboard",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
-  "description": "Basket Monitor — minuti giocati e carico di fatica (INT) dei giocatori, multi-squadra",
+  "description": "DP Dashboard — minuti giocati e carico di fatica (INT) dei giocatori, multi-squadra",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

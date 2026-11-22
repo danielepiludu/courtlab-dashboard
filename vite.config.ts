@@ -14,18 +14,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png'],
+      includeAssets: ['logo.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png', 'icons/app-logo.png'],
       manifest: {
         id: 'donbosco-basket-monitor', // invariato: mantiene l'identità dell'app già installata
-        name: 'Basket Monitor',
-        short_name: 'Basket Monitor',
+        name: 'DP Dashboard',
+        short_name: 'DP Dashboard',
         description: 'Minuti giocati e carico di fatica (INT) dei giocatori, per più squadre',
         lang: 'it',
         dir: 'ltr',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#050f1a',
-        theme_color: '#002855',
+        background_color: '#000000',
+        theme_color: '#000000',
         categories: ['sports', 'utilities'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
