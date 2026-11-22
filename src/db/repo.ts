@@ -1,6 +1,6 @@
 import Dexie from 'dexie';
 import { db, defaultTeam, type KV } from './db';
-import type { Game, GameReport, Player, PlayerStatus, Role, Team } from './types';
+import type { Game, GameReport, Player, PlayerStatus, RpeEntry, Role, Team, TrainingSession } from './types';
 import { todayISO, toISODate } from '@/lib/dates';
 import { currentSeason, nextSeason } from '@/config';
 
@@ -21,8 +21,10 @@ export async function setTeamArchived(id: number, archived: boolean) {
 
 /** Elimina la squadra con giocatori, partite e resoconti. */
 export async function deleteTeam(id: number) {
-  await db.transaction('rw', [db.teams, db.players, db.games, db.reports], async () => {
+  await db.transaction('rw', [db.teams, db.players, db.games, db.reports, db.sessions, db.rpe], async () => {
     await db.reports.where('teamId').equals(id).delete();
+    await db.rpe.where('teamId').equals(id).delete();
+    await db.sessions.where('teamId').equals(id).delete();
     await db.games.where('teamId').equals(id).delete();
     await db.players.where('teamId').equals(id).delete();
     await db.teams.delete(id);
@@ -110,6 +112,8 @@ interface Backup {
   games: Game[];
   kv: KV[];
   reports?: GameReport[];
+  sessions?: TrainingSession[];
+  rpe?: RpeEntry[];
 }
 
 /** Tutte le squadre, giocatori, partite, resoconti e immagini (incluse come data URL). */
@@ -124,6 +128,8 @@ export async function exportBackup(activeTeamId: number | null): Promise<Blob> {
     games: await db.games.toArray(),
     kv: await db.kv.toArray(),
     reports: await db.reports.toArray(),
+    sessions: await db.sessions.toArray(),
+    rpe: await db.rpe.toArray(),
   };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }
@@ -142,9 +148,11 @@ export async function importBackup(file: File): Promise<{ teams: number; players
     players = players.map((p) => ({ ...p, teamId: 1 }));
     games = games.map((g) => ({ ...g, teamId: 1 }));
   }
-  await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports], async () => {
-    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear()]);
+  await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports, db.sessions, db.rpe], async () => {
+    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
     await db.teams.bulkPut(teams);
+    if (Array.isArray(data.sessions)) await db.sessions.bulkPut(data.sessions);
+    if (Array.isArray(data.rpe)) await db.rpe.bulkPut(data.rpe);
     await db.players.bulkPut(players);
     await db.games.bulkPut(games);
     if (Array.isArray(data.reports)) await db.reports.bulkPut(data.reports);
@@ -169,8 +177,8 @@ export async function importBackup(file: File): Promise<{ teams: number; players
 
 /** Elimina tutto e ricrea la squadra predefinita. */
 export async function wipeAll(): Promise<number> {
-  await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports], async () => {
-    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear()]);
+  await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports, db.sessions, db.rpe], async () => {
+    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
     await db.kv.put({ key: 'legacyImportDone', value: true, updatedAt: now() });
   });
   return (await db.teams.add(defaultTeam())) as number;

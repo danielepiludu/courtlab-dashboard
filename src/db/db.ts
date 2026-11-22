@@ -1,5 +1,5 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
-import { BUILTIN_LOGO, type Game, type GameReport, type Player, type ReportPlayer, type Team } from './types';
+import { BUILTIN_LOGO, type Game, type GameReport, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
 import { DEFAULT_TEAM } from '@/config';
 
 /** Record generico chiave/valore (stato partita in corso, resoconti, impostazioni) */
@@ -20,6 +20,8 @@ export class AppDB extends Dexie {
   games!: Table<Game, number>;
   kv!: Table<KV, string>;
   reports!: Table<GameReport, number>;
+  sessions!: Table<TrainingSession, number>;
+  rpe!: Table<RpeEntry, number>;
 
   constructor() {
     super('donbosco-basket-monitor');
@@ -64,6 +66,16 @@ export class AppDB extends Dexie {
           await tx.table('kv').delete(rec.key);
         }
       });
+    // v4: sedute di allenamento e RPE (carico interno sRPE)
+    this.version(4).stores({
+      teams: '++id, createdAt',
+      players: '++id, teamId, name, number, role, status',
+      games: '++id, teamId, date, status',
+      kv: 'key',
+      reports: 'gameId, teamId',
+      sessions: '++id, teamId, date',
+      rpe: '++id, teamId, sessionId, playerId, &[sessionId+playerId]',
+    });
     // Primo avvio: crea la squadra predefinita
     this.on('populate', (tx) => {
       void tx.table('teams').add(defaultTeam());

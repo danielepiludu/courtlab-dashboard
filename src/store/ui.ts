@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Tab = 'home' | 'players' | 'match' | 'reports';
+export type Tab = 'home' | 'players' | 'match' | 'rpe' | 'reports';
 export type Substrate = 'tabs' | 'live';
 
 export interface SetupDraft {

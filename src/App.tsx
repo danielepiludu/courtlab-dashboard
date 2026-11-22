@@ -6,6 +6,7 @@ import { HomeScreen } from '@/features/home/HomeScreen';
 import { PlayersScreen } from '@/features/players/PlayersScreen';
 import { MatchSetupScreen } from '@/features/match/MatchSetupScreen';
 import { ReportsScreen } from '@/features/reports/ReportsScreen';
+import { RpeScreen } from '@/features/rpe/RpeScreen';
 import { LiveScreen } from '@/features/live/LiveScreen';
 import { TeamsScreen } from '@/features/teams/TeamsScreen';
 import { ReportScreen } from '@/features/report/ReportScreen';
@@ -74,6 +75,7 @@ export default function App() {
               {tab === 'home' && <HomeScreen />}
               {tab === 'players' && <PlayersScreen />}
               {tab === 'match' && <MatchSetupScreen />}
+              {tab === 'rpe' && <RpeScreen />}
               {tab === 'reports' && <ReportsScreen />}
             </main>
             <TabBar />
