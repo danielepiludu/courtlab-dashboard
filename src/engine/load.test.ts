@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fixture from './fixtures/srpe-2026-27.json';
-import { LOAD_CONFIG, acwrZone, athleteSeries, entryTL, teamDaily, type LoadEntry } from './load';
+import { LOAD_CONFIG, acwrZone, athleteSeries, entryTL, teamDaily, teamSeries, type LoadEntry } from './load';
 
 const entries: LoadEntry<string>[] = fixture.rows.map((r) => ({ athlete: r.name, date: r.date, rpe: r.rpe, minutes: r.min }));
 
@@ -40,5 +40,15 @@ describe('regole', () => {
     const t = teamDaily(entries);
     expect(t[0].date).toBe('2026-08-20');
     expect(t[0].avg).toBeCloseTo(400.909, 3);
+  });
+});
+
+describe('serie della squadra', () => {
+  it('la media mobile di squadra coincide con "Media squadra" del foglio in ogni data', () => {
+    const team = new Map(teamSeries(entries, fixture.window).map((d) => [d.date, d]));
+    for (const e of fixture.expected) expect(team.get(e.date)?.teamRol).toBeCloseTo(e.teamRol as number, 9);
+  });
+  it('TL medio del giorno = totale ÷ risposte', () => {
+    for (const d of teamSeries(entries)) if (d.count) expect(d.avg).toBeCloseTo(d.total / d.count, 9);
   });
 });

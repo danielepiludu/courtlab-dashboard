@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Trash } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -8,11 +8,15 @@ import type { Player, RpeEntry, TrainingSession } from '@/db/types';
 import { SESSION_TYPE_LABEL } from '@/db/types';
 import { deleteSession, saveSession, setRpe } from '@/db/rpeRepo';
 import { RPE_SCALE, entryTL } from '@/engine/load';
-import { intColor } from '@/features/live/PlayerCards';
+import { intColor } from '@/lib/intColor';
 import { fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { confirmDialog, toast } from '@/store/feedback';
+import { useActiveTeam } from '@/db/hooks';
+import { useCloud } from '@/cloud/client';
+import { deleteSurvey, publishSurvey } from '@/cloud/surveys';
+import { SurveyPanel } from './SurveyPanel';
 
 export const rpeColor = (v: number | null | undefined) => (v == null ? undefined : intColor(v / 10));
 const fmtRpe = (v: number) => String(v).replace('.', ',');
@@ -64,6 +68,9 @@ function RpePicker({ player, entry, session, onPick, onClose }: { player: Player
 export function SessionSheet({ session, players, entries, readOnly, onClose }: { session: TrainingSession | null; players: Player[]; entries: RpeEntry[]; readOnly: boolean; onClose: () => void }) {
   const [draft, setDraft] = useState<TrainingSession | null>(session);
   const [picking, setPicking] = useState<Player | null>(null);
+  const team = useActiveTeam();
+  const logged = useCloud((x) => !!x.session);
+  const dirty = useRef(false);
   useEffect(() => {
     if (session) setDraft(session);
   }, [session]);
@@ -78,7 +85,15 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
   const update = async (p: Partial<TrainingSession>) => {
     const next = { ...s, ...p };
     setDraft(next);
+    dirty.current = true;
     if (next.id && next.date && next.minutes > 0) await saveSession(next);
+  };
+
+  // chiudendo: se data o durata sono cambiate, aggiorna anche la pagina del link
+  const close = () => {
+    if (dirty.current && s.surveyToken && logged && team) publishSurvey(s, team, players, s.surveyOpen !== false).catch(() => toast('Link non aggiornato: riprova con Aggiorna', 'error'));
+    dirty.current = false;
+    onClose();
   };
 
   const pick = async (rpe: number | null, minutes: number | null) => {
@@ -96,7 +111,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
     <>
       <Sheet
         open={!!session}
-        onClose={onClose}
+        onClose={close}
         wide
         title={`${SESSION_TYPE_LABEL[s.type]}`}
         subtitle={fmtLong(s.date)}
@@ -112,12 +127,13 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
                 onClick={async () => {
                   const ok = await confirmDialog({ title: 'Eliminare la seduta?', message: `Verranno eliminati anche i ${answered.length} RPE inseriti.`, confirmLabel: 'Elimina', danger: true });
                   if (!ok) return;
+                  if (s.surveyToken && logged) await deleteSurvey(s.surveyToken).catch(() => undefined);
                   await deleteSession(s.id!);
                   toast('Seduta eliminata');
                   onClose();
                 }}
               />
-              <Button variant="primary" size="lg" className="flex-1" onClick={onClose}>
+              <Button variant="primary" size="lg" className="flex-1" onClick={close}>
                 Fatto
               </Button>
             </div>
@@ -147,6 +163,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
               <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">TL medio</div>
             </div>
           </div>
+          {!readOnly && s.id != null && <SurveyPanel session={s} players={players} />}
           <div className="space-y-1.5">
             {players.map((p) => {
               const e = mine.get(p.id!);

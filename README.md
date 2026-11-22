@@ -69,9 +69,12 @@ Tab **RPE** (sola lettura per le squadre archiviate):
 
 - **Sedute**: `+ Seduta` crea un allenamento tecnico di basket con data e durata decise dallo staff. Toccando un atleta si sceglie l'RPE sulla scala CR-10 (0 → 10, con 0,5) e, se serve, minuti diversi per quell'atleta; si passa da solo al prossimo senza risposta. Per ogni seduta: risposte x/N, RPE medio, TL medio.
 - **Importa Excel**: si sceglie il foglio sRPE scaricato da Google Sheets in `.xlsx` (colonne NOME ATLETA, DATA, RPE, TEMPO). Anteprima con sedute, RPE e abbinamento nomi → giocatori (anche solo per cognome); i nomi senza corrispondenza diventano nuovi giocatori. Ogni data diventa una seduta, la durata è quella più frequente del giorno.
-- **Analisi carico**: per la squadra, l'ultimo Work Load di ogni atleta (sopra 1,3 / in zona / sotto 0,8); per l'atleta, grafico come nel foglio (barre TL, media personale, media squadra, Work Load sull'asse destro 0–2,5, limiti 1,3 e 0,8) e tabella giorno per giorno. La finestra della media mobile è regolabile (predefinita 7 giorni).
+- **Analisi carico**:
+  - squadra: quanti atleti sono sopra 1,3 / in zona / sotto 0,8 (toccando si filtra), grafico del TL medio di squadra con la media mobile, elenco atleti con indicatore del Work Load;
+  - atleta: riquadro del giorno selezionato (TL, media personale, media squadra, Work Load con stato), due grafici allineati sullo stesso asse dei giorni — sopra il carico (barre TL, media personale, media squadra), sotto il Work Load con la fascia 0,8–1,3 — e tabella giorno per giorno. Toccando un giorno nel grafico o nella tabella si aggiorna il riquadro. I punti vuoti del Work Load sono i giorni senza RPE (valore riportato dal precedente).
+  - La finestra della media mobile è regolabile (predefinita 7 giorni).
 
-Formule identiche al foglio (verificate su tutte le 43 date in `src/engine/load.test.ts`):
+Formule identiche al foglio: verificate su tutte le 43 date in `src/engine/load.test.ts` e, con il file reale (non incluso nel repository), su tutti i 15 atleti dopo l'importazione nell'app: 2580 valori, nessuna differenza.
 
 | Indicatore | Calcolo |
 |---|---|
@@ -82,6 +85,20 @@ Formule identiche al foglio (verificate su tutte le 43 date in `src/engine/load.
 | Work Load (A:C) | TL del giorno ÷ media personale; nei giorni senza TL resta il valore precedente |
 
 Sedute e RPE sono nelle tabelle `sessions` e `rpe` (schema Dexie v4) e sono inclusi nel backup.
+
+### Link RPE per gli atleti (Courtlab Cloud)
+
+Nella seduta, **Crea link per gli atleti** pubblica la raccolta e apre la condivisione (WhatsApp ecc.). L'atleta apre il link `…/#/rpe/<codice>` dal browser, senza installare nulla: sceglie il proprio nome (ricordato per le volte successive), tocca il valore RPE e invia; può modificarlo finché la raccolta è aperta. Le risposte arrivano nell'app ogni 30 secondi mentre la tab RPE è aperta (o con **Aggiorna**) e sono segnate "dall'atleta". Ciò che lo staff inserisce o corregge a mano ha sempre la precedenza. **Chiudi** blocca nuove risposte.
+
+Il servizio online è un progetto [Supabase](https://supabase.com) (piano gratuito). Configurazione, una volta sola:
+
+1. Crea un account su supabase.com e un nuovo progetto (regione consigliata: Frankfurt).
+2. **SQL Editor** → New query → incolla il contenuto di [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
+3. **Authentication → Users → Add user**: crea l'utente dello staff (email + password, "Auto confirm"). In **Authentication → Sign In / Providers** disattiva "Allow new users to sign up", così nessun altro può registrarsi.
+4. **Project Settings → API keys**: copia l'URL del progetto e la chiave **publishable** (o "anon public"). Vanno in `src/cloud/config.ts` (oppure come variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` in build). La chiave segreta / service_role non va mai nell'app.
+5. Nell'app: Impostazioni → **Courtlab Cloud** → accedi con l'utente dello staff.
+
+Sicurezza (regole in `supabase/schema.sql`): gli atleti non hanno accesso alle tabelle, solo a due funzioni — leggere la seduta del proprio link e inviare un RPE valido per un nome in elenco a raccolta aperta. Lo staff vede solo le proprie raccolte. Online vengono pubblicati solo nome della squadra, colori, logo ridotto, data e durata della seduta, nome e numero dei giocatori e gli RPE inviati; tutto il resto resta sul dispositivo.
 
 ## Comandi
 
@@ -133,6 +150,7 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 ├── public/
 │   ├── logo.png                     logo Don Bosco ritagliato, sfondo trasparente
 │   └── icons/                       icone PWA 192/512, maskable, apple-touch, favicon
+├── supabase/schema.sql              tabelle, regole di accesso e funzioni di Courtlab Cloud
 ├── scripts/make-icons.py            genera il logo della squadra predefinita
 ├── scripts/make-app-icons.cjs       genera le icone dell'app dall'SVG
 ├── index.html                       applica subito il tema dell'ultima squadra (nessun lampo di colori)
@@ -152,6 +170,7 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │   │   ├── extract.ts               colori dominanti dal logo
 │   │   ├── apply.ts                 variabili CSS, logo, istantanea per l'avvio
 │   │   └── ThemeController.tsx      applica il tema della squadra attiva
+│   ├── cloud/                       Courtlab Cloud: client Supabase, accesso staff, raccolte RPE, sincronizzazione
 │   ├── db/
 │   │   ├── types.ts                 Team, Player, Game, GameReport, TrainingSession, RpeEntry
 │   │   ├── db.ts                    schema Dexie v4 (migrazioni dalle versioni precedenti)
@@ -172,6 +191,7 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │       │                            card campo/panchina, debug INT
 │       ├── report/                  riepilogo (+ test), schermata resoconto, grafico INT, PDF (+ test)
 │       ├── reports/                 tab Resoconti
+│       ├── athlete/                 pagina pubblica del link RPE per gli atleti
 │       └── rpe/                     tab RPE: sedute, scala CR-10, analisi carico, grafico, import Excel (+ test)
 └── .github/workflows/deploy.yml     test + build + GitHub Pages
 ```
@@ -187,5 +207,5 @@ Carico interno (RPE):
 
 - [x] **Fase 1** — sedute, inserimento RPE, calcoli del foglio sRPE, grafico, import da Excel
 - [ ] **Fase 2** — sincronizzazione tra dispositivi dello staff con account
-- [ ] **Fase 3** — link per gli atleti per inserire l'RPE senza installare nulla
+- [x] **Fase 3** — link per gli atleti per inserire l'RPE senza installare nulla (da attivare con il progetto Supabase)
 - [ ] **Fase 4** — report ed export del carico (PDF/Excel), integrazione minuti e INT

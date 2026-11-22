@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { Database, Download, Settings2, Sparkles, Trash, Upload } from 'lucide-react';
+import { Cloud, Database, Download, Settings2, Sparkles, Trash, Upload } from 'lucide-react';
+import { CloudSheet } from '@/cloud/CloudSheet';
+import { useCloud } from '@/cloud/client';
 import { Sheet } from './ui/Sheet';
 import { exportBackup, importBackup, loadDemoTeam, wipeAll } from '@/db/repo';
 import { useActiveTeam } from '@/db/hooks';
@@ -25,6 +27,8 @@ function Row({ icon, title, text, onClick, danger }: { icon: React.ReactNode; ti
 export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [cloud, setCloud] = useState(false);
+  const cloudUser = useCloud((x) => x.session?.user.email);
   const team = useActiveTeam();
   const activeTeamId = useUI((s) => s.activeTeamId);
   const setActiveTeam = useUI((s) => s.setActiveTeam);
@@ -76,6 +80,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       </div>
       <div className="space-y-2.5">
         <Row icon={<Settings2 size={20} />} title="Gestisci squadre" text="Crea, modifica, archivia o duplica per nuova stagione" onClick={() => (onClose(), setTeamsOpen(true))} />
+        <Row icon={<Cloud size={20} />} title="Courtlab Cloud" text={cloudUser ? `Collegato come ${cloudUser}` : 'Accedi per mandare agli atleti il link RPE'} onClick={() => setCloud(true)} />
         <Row icon={<Download size={20} />} title="Esporta backup" text="Tutte le squadre, giocatori, partite, resoconti e immagini in un file .json" onClick={doExport} />
         <Row icon={<Upload size={20} />} title="Importa backup" text="Ripristina da un file .json (es. dopo il cambio di telefono)" onClick={() => fileRef.current?.click()} />
         <Row
@@ -120,6 +125,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         <Database size={16} className="mt-0.5 shrink-0" />
         L'app funziona offline: i dati restano nel browser di questo dispositivo. Esporta un backup periodicamente e prima di cambiare telefono.
       </p>
+      <CloudSheet open={cloud} onClose={() => setCloud(false)} />
       <input
         ref={fileRef}
         type="file"
