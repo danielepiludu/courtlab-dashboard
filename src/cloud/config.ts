@@ -4,8 +4,8 @@
  * Non inserire MAI qui la chiave segreta / service_role.
  * Si possono anche passare in build con VITE_SUPABASE_URL e VITE_SUPABASE_KEY.
  */
-const URL_DEFAULT = '';
-const KEY_DEFAULT = '';
+const URL_DEFAULT = 'https://zsqaingvzduidyiuonre.supabase.co';
+const KEY_DEFAULT = 'sb_publishable_CS8Rgto24ggRSj5iQC7s4A_niRSUph_';
 
 export const CLOUD = {
   url: ((import.meta.env.VITE_SUPABASE_URL as string | undefined) || URL_DEFAULT).replace(/\/+$/, ''),
