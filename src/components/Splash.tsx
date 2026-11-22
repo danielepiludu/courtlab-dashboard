@@ -30,8 +30,9 @@ export function Splash({ leaving }: { leaving: boolean }) {
       <div className="anim-rise mt-8 flex items-center gap-3" style={{ animationDelay: '.25s' }}>
         <img src={`${import.meta.env.BASE_URL}icons/app-logo.png`} alt="" width={52} height={52} className="h-[52px] w-[52px] drop-shadow-[0_6px_16px_rgba(0,0,0,.6)]" draggable={false} />
         <div className="text-left">
-          <div className="font-display text-[34px] font-extrabold uppercase leading-none tracking-[0.06em]">DP</div>
-          <div className="mt-1 font-display text-lg font-semibold uppercase leading-none tracking-[0.3em] text-brand-text">Dashboard</div>
+          <div className="font-display text-[38px] font-extrabold leading-none tracking-[0.02em]">
+            Court<span className="text-[#ff8a1f]">lab</span>
+          </div>
         </div>
       </div>
       <div className="absolute bottom-10 max-w-[80%] truncate px-6 text-center text-xs font-medium uppercase tracking-[0.2em] text-ink-faint" style={{ marginBottom: 'var(--safe-bottom)' }}>

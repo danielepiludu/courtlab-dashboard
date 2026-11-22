@@ -1,15 +1,15 @@
 {
-  "name": "dp-dashboard",
+  "name": "courtlab",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
-  "description": "DP Dashboard — minuti giocati e carico di fatica (INT) dei giocatori, multi-squadra",
+  "description": "Courtlab — minuti giocati, carico di fatica (INT) e prestazione dei giocatori, multi-squadra",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "icons": "python3 scripts/make-icons.py",
+    "icons": "python3 scripts/make-icons.py && node scripts/make-app-icons.cjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
