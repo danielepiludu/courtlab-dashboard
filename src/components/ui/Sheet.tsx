@@ -43,18 +43,28 @@ interface SheetProps {
   elevated?: boolean;
 }
 
+const openStack: symbol[] = [];
+
 /** Bottom sheet animato con header, area scrollabile e footer fisso. */
 export function Sheet({ open, onClose, title, subtitle, children, footer, wide, style, elevated }: SheetProps) {
   const { mounted, shown } = useMountTransition(open);
   useBackClose(open, onClose);
   const latched = useLatchWhile(open, { title, subtitle, children, footer });
 
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    // Esc chiude solo il pannello più in alto
+    const me = Symbol();
+    openStack.push(me);
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && openStack[openStack.length - 1] === me && closeRef.current();
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', k);
+      openStack.splice(openStack.indexOf(me), 1);
+    };
+  }, [open]);
 
   if (!mounted) return null;
   return createPortal(

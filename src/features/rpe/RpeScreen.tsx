@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Activity, ChevronLeft, ChevronRight, FileSpreadsheet, Minus, Plus } from 'lucide-react';
+import { Activity, ChevronRight, FileSpreadsheet, Link2, Plus } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Chip';
@@ -9,21 +9,16 @@ import { EmptyState, SectionTitle } from '@/components/ui/misc';
 import { useActiveTeam, usePlayers, useRpeEntries, useSessions } from '@/db/hooks';
 import { newSession, saveSession, toLoadEntries } from '@/db/rpeRepo';
 import { SESSION_TYPE_LABEL, type Player, type TrainingSession } from '@/db/types';
-import { LOAD_CONFIG, acwrZone, athleteSeries, entryTL, type AthleteDay } from '@/engine/load';
+import { LOAD_CONFIG, entryTL } from '@/engine/load';
 import { fmtMedium, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
-import { cx } from '@/lib/cx';
 import { toast } from '@/store/feedback';
-import { LoadChart } from './LoadChart';
+import { LoadAnalysis } from './LoadAnalysis';
+import { useSurveySync } from '@/cloud/useSurveySync';
 import { SessionSheet, rpeColor } from './SessionSheet';
 import { applyImport, parseSrpeRows, planImport, type ImportPlan } from './importSrpe';
 
 const fmt = (v: number | null | undefined, d = 0) => (v == null ? '–' : v.toFixed(d).replace('.', ','));
-const ZONE = {
-  high: { label: 'Sopra 1,3', cls: 'bg-danger/15 text-danger' },
-  low: { label: 'Sotto 0,8', cls: 'bg-ok/15 text-ok' },
-  ok: { label: 'In zona', cls: 'bg-white/10 text-ink' },
-} as const;
 
 function readWindow(): number {
   try {
@@ -148,16 +143,11 @@ export function RpeScreen() {
   const [view, setView] = useState<'sessions' | 'analysis'>('sessions');
   const [open, setOpen] = useState<TrainingSession | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [athlete, setAthlete] = useState<number | null>(null);
   const [windowDays, setWindowDays] = useState(readWindow);
+  useSurveySync(sessions);
 
   const sessionsAsc = useMemo(() => [...(sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)), [sessions]);
   const loadEntries = useMemo(() => toLoadEntries(sessionsAsc, entries ?? [], players), [sessionsAsc, entries, players]);
-  const seriesByPlayer = useMemo(() => {
-    const m = new Map<number, AthleteDay[]>();
-    for (const p of players) m.set(p.id!, athleteSeries(loadEntries, p.id!, windowDays));
-    return m;
-  }, [loadEntries, players, windowDays]);
 
   const changeWindow = (d: number) => {
     const v = Math.min(28, Math.max(2, windowDays + d));
@@ -177,17 +167,6 @@ export function RpeScreen() {
     setOpen({ ...s, id });
   };
 
-  const overview = players
-    .map((p) => {
-      const series = seriesByPlayer.get(p.id!) ?? [];
-      const last = [...series].reverse().find((d) => d.tl != null);
-      const latest = series[series.length - 1];
-      return { p, last, latest, answered: series.filter((d) => d.tl != null).length };
-    })
-    .sort((a, b) => (b.latest?.acwr ?? -1) - (a.latest?.acwr ?? -1));
-
-  const selected = athlete != null ? players.find((p) => p.id === athlete) : undefined;
-  const selSeries = athlete != null ? (seriesByPlayer.get(athlete) ?? []) : [];
 
   return (
     <>
@@ -206,7 +185,7 @@ export function RpeScreen() {
       <div className="mx-auto max-w-3xl px-4 pt-3">
         <Segmented
           value={view}
-          onChange={(v) => (setView(v), setAthlete(null))}
+          onChange={setView}
           options={[
             { value: 'sessions', label: 'Sedute' },
             { value: 'analysis', label: 'Analisi carico' },
@@ -268,6 +247,12 @@ export function RpeScreen() {
                             <span className={complete ? 'text-ok' : es.length ? 'text-warn' : 'text-ink-muted'}>
                               {es.length}/{players.length} risposte
                             </span>
+                            {s.surveyToken && (
+                              <span className={s.surveyOpen === false ? 'text-ink-muted' : 'text-accent-light'}>
+                                {' '}
+                                · <Link2 size={13} className="inline -translate-y-px" /> {s.surveyOpen === false ? 'link chiuso' : 'link aperto'}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -283,116 +268,12 @@ export function RpeScreen() {
             )}
           </>
         ) : (
-          <>
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-3">
-              <div className="text-[13px] leading-snug text-ink-muted">
-                <b className="text-ink">Media mobile</b>
-                <br />
-                ultimi giorni di calendario
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="icon" aria-label="Meno giorni" icon={<Minus size={18} />} onClick={() => changeWindow(-1)} />
-                <Num value={windowDays} className="w-10 text-center text-[28px]" />
-                <Button size="icon" aria-label="Più giorni" icon={<Plus size={18} />} onClick={() => changeWindow(1)} />
-              </div>
-            </div>
-
-            {!selected ? (
-              <>
-                <SectionTitle>Squadra · ultimo Work Load</SectionTitle>
-                {!loadEntries.some((e) => e.rpe != null) ? (
-                  <div className="rounded-2xl border border-dashed border-line p-5 text-center text-sm text-ink-muted">Ancora nessun RPE inserito.</div>
-                ) : (
-                  <div className="stagger space-y-2">
-                    {overview.map(({ p, last, latest, answered }) => {
-                      const z = acwrZone(latest?.acwr ?? null);
-                      return (
-                        <button key={p.id} onClick={() => (haptic.tap(), setAthlete(p.id!))} className="card pressable flex w-full items-center gap-3 p-3 text-left">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-3 font-display font-bold">
-                            {p.photo ? <img src={p.photo} alt="" className="h-full w-full object-cover" /> : p.number || '–'}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <b className="block truncate text-[15px]">
-                              <span className="text-brand-text">{p.number}</span> {p.name}
-                            </b>
-                            <span className="text-[12px] text-ink-muted">
-                              Ultimo TL {fmt(last?.tl)} · media {fmt(latest?.rolAvg)} · {answered} sedute
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <Num value={fmt(latest?.acwr, 2)} className="text-[24px]" />
-                            {z && <div className={cx('mt-0.5 rounded px-1.5 text-[10px] font-bold uppercase', ZONE[z].cls)}>{ZONE[z].label}</div>}
-                          </div>
-                          <ChevronRight size={18} className="text-ink-faint" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="mb-2 mt-5 flex items-center gap-2">
-                  <button onClick={() => setAthlete(null)} aria-label="Torna alla squadra" className="grid h-11 w-11 place-items-center rounded-full bg-white/5 active:scale-90">
-                    <ChevronLeft size={22} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <b className="block truncate text-[18px]">
-                      <span className="text-brand-text">{selected.number}</span> {selected.name}
-                    </b>
-                    <span className="text-[12px] text-ink-muted">Media personale su {windowDays} giorni · limiti 1,3 e 0,8</span>
-                  </div>
-                </div>
-                <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4">
-                  {players.map((p) => (
-                    <button key={p.id} onClick={() => (haptic.tap(), setAthlete(p.id!))} className={cx('h-9 shrink-0 rounded-full border px-3 text-[13px] font-semibold', p.id === athlete ? 'border-accent bg-accent/20' : 'border-line text-ink-muted')}>
-                      {p.name.split(' ').slice(-1)[0]}
-                    </button>
-                  ))}
-                </div>
-                <LoadChart data={selSeries} />
-                <SectionTitle>Giorno per giorno</SectionTitle>
-                <div className="overflow-hidden rounded-2xl border border-line">
-                  <table className="w-full text-[13px] tabular">
-                    <thead className="bg-bar text-[11px] uppercase tracking-wider text-ink-muted">
-                      <tr>
-                        <th className="px-2 py-2 text-left">Data</th>
-                        <th className="px-2 text-right">TL</th>
-                        <th className="px-2 text-right">Media pers.</th>
-                        <th className="px-2 text-right">Media squadra</th>
-                        <th className="px-2 text-right">Work Load</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...selSeries].reverse().map((d) => {
-                        const z = acwrZone(d.acwr);
-                        return (
-                          <tr key={d.date} className="border-t border-line/60">
-                            <td className="whitespace-nowrap px-2 py-1.5">{fmtMedium(d.date)}</td>
-                            <td className="px-2 text-right font-bold">{fmt(d.tl)}</td>
-                            <td className="px-2 text-right">{fmt(d.rolAvg, 1)}</td>
-                            <td className="px-2 text-right">{fmt(d.teamRol, 1)}</td>
-                            <td className="px-2 text-right">
-                              <span className={cx('rounded px-1.5 py-0.5 font-bold', z ? ZONE[z].cls : 'text-ink-faint')}>{fmt(d.acwr, 2)}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-            <p className="mt-4 px-1 text-[12px] leading-relaxed text-ink-muted">
-              TL = RPE × minuti. Media personale = media dei TL dell'atleta negli ultimi {windowDays} giorni; media squadra = media di tutti i TL della squadra nello stesso periodo;
-              Work Load = TL del giorno ÷ media personale (senza allenamento resta il valore precedente). Formule identiche al foglio sRPE.
-            </p>
-          </>
+          <LoadAnalysis players={players} entries={loadEntries} windowDays={windowDays} onWindowChange={changeWindow} />
         )}
         <div className="h-6" />
       </div>
 
-      <SessionSheet session={open} players={players} entries={entries ?? []} readOnly={readOnly} onClose={() => setOpen(null)} />
+      <SessionSheet session={open ? (sessions?.find((x) => x.id === open.id) ?? open) : null} players={players} entries={entries ?? []} readOnly={readOnly} onClose={() => setOpen(null)} />
       {team?.id != null && <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} teamId={team.id} players={players} />}
     </>
   );

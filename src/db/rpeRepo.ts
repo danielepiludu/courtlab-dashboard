@@ -25,7 +25,9 @@ export async function deleteSession(id: number) {
 export async function setRpe(session: TrainingSession, playerId: number, rpe: number | null, minutes: number | null = null, source: RpeEntry['source'] = 'staff') {
   const existing = await db.rpe.where('[sessionId+playerId]').equals([session.id!, playerId]).first();
   if (rpe == null && minutes == null) {
-    if (existing?.id) await db.rpe.delete(existing.id);
+    // se la risposta era arrivata dal link, resta un segnaposto dello staff così la sincronizzazione non la reinserisce
+    if (existing?.id && existing.source === 'atleta' && source === 'staff') await db.rpe.put({ ...existing, rpe: null, minutes: null, source: 'staff', updatedAt: now() });
+    else if (existing?.id) await db.rpe.delete(existing.id);
     return;
   }
   await db.rpe.put({ ...(existing ?? {}), teamId: session.teamId, sessionId: session.id!, playerId, rpe, minutes, source, updatedAt: now() });

@@ -76,6 +76,28 @@ export function teamDaily<A>(entries: LoadEntry<A>[]): { date: string; total: nu
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+export interface TeamDay {
+  date: string;
+  /** TL medio degli atleti che hanno risposto */
+  avg: number | null;
+  total: number;
+  count: number;
+  /** media mobile della squadra (stessa definizione di "Media squadra") */
+  teamRol: number | null;
+}
+
+/** Serie della squadra: per ogni data con almeno un inserimento, TL medio e media mobile di squadra. */
+export function teamSeries<A>(entries: LoadEntry<A>[], windowDays = LOAD_CONFIG.windowDays): TeamDay[] {
+  const dates = [...new Set(entries.map((e) => e.date))].sort();
+  const team = entries.map((e) => ({ day: toDay(e.date), date: e.date, tl: entryTL(e) })).filter((x): x is { day: number; date: string; tl: number } => x.tl != null);
+  return dates.map((date) => {
+    const day = toDay(date);
+    const today = team.filter((x) => x.date === date).map((x) => x.tl);
+    const total = today.reduce((a, b) => a + b, 0);
+    return { date, avg: mean(today), total, count: today.length, teamRol: mean(team.filter((x) => x.day >= day - windowDays + 1 && x.day <= day).map((x) => x.tl)) };
+  });
+}
+
 /** Zona del Work Load rispetto ai limiti. */
 export function acwrZone(v: number | null): 'low' | 'ok' | 'high' | null {
   if (v == null) return null;

@@ -119,6 +119,9 @@ export interface TrainingSession {
   notes: string;
   createdAt: number;
   updatedAt: number;
+  /** link per gli atleti (Courtlab Cloud): codice della raccolta e se accetta ancora risposte */
+  surveyToken?: string;
+  surveyOpen?: boolean;
 }
 
 /** RPE di un atleta in una seduta. TL = RPE × minuti (della seduta, salvo correzione per l'atleta). */
