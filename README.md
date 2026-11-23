@@ -114,6 +114,8 @@ Il servizio online è un progetto [Supabase](https://supabase.com) (piano gratui
 4. **Project Settings → API keys**: copia l'URL del progetto e la chiave **publishable** (o "anon public"). Vanno in `src/cloud/config.ts` (oppure come variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` in build). La chiave segreta / service_role non va mai nell'app.
 5. Nell'app: Impostazioni → **Courtlab Cloud** → accedi con l'utente dello staff.
 
+**Accesso all'app**: con Courtlab Cloud configurato, l'app dello staff si apre solo dopo l'accesso (email e password dell'utente Supabase); senza accesso compare solo la schermata di login e il resto dell'app non viene nemmeno caricato (nessun database locale creato). L'accesso resta salvato sul dispositivo e l'app continua a funzionare offline; *Esci* la blocca di nuovo. La pagina del link (`…/rpe/#codice`) è separata e permette solo di votare; senza codice valido mostra un messaggio d'errore. Il service worker non serve mai l'app al posto della pagina `rpe`.
+
 Sicurezza (regole in `supabase/schema.sql`): gli atleti non hanno accesso alle tabelle, solo a due funzioni — leggere la seduta del proprio link e inviare un RPE valido per un nome in elenco a raccolta aperta. Lo staff vede solo le proprie raccolte. Online vengono pubblicati solo nome della squadra, colori, logo ridotto, data e durata della seduta, nome e numero dei giocatori e gli RPE inviati; tutto il resto resta sul dispositivo.
 
 ## Comandi

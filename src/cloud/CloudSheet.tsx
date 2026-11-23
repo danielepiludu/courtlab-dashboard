@@ -4,7 +4,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/misc';
 import { haptic } from '@/lib/haptics';
-import { toast } from '@/store/feedback';
+import { confirmDialog, toast } from '@/store/feedback';
 import { CloudError, signIn, signOut, useCloud } from './client';
 import { cloudConfigured } from './config';
 import { retrySync, useSync } from './sync';
@@ -74,6 +74,13 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
             className="w-full"
             icon={<LogOut size={20} />}
             onClick={async () => {
+              const ok = await confirmDialog({
+                title: 'Uscire da Courtlab?',
+                message: "Su questo dispositivo l'app si blocca finché non accedi di nuovo. I dati restano salvati e la sincronizzazione riprende al prossimo accesso.",
+                confirmLabel: 'Esci',
+                danger: true,
+              });
+              if (!ok) return;
               await signOut();
               toast('Disconnesso');
             }}
