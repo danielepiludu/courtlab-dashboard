@@ -82,7 +82,7 @@ export function ReportsScreen() {
             </div>
             <div className="stagger space-y-2">
               {finished.map((g) => (
-                <div key={g.id} className="flex items-stretch gap-2">
+                <div key={g.id} className="flex items-stretch gap-1">
                   <div className="min-w-0 flex-1">
                     <ReportRow
                       g={g}
@@ -97,9 +97,9 @@ export function ReportsScreen() {
                     <button
                       onClick={() => void askDeleteGame(g)}
                       aria-label={`Elimina la partita contro ${g.opponent}`}
-                      className="grid w-12 shrink-0 place-items-center rounded-2xl border border-line bg-surface text-ink-faint transition active:scale-95 hover:text-danger"
+                      className="grid w-9 shrink-0 place-items-center rounded-full text-ink-faint transition active:scale-90 hover:text-danger"
                     >
-                      <Trash size={19} />
+                      <Trash size={17} />
                     </button>
                   )}
                 </div>

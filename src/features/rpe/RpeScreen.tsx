@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, ChevronRight, FileSpreadsheet, Link2, Plus } from 'lucide-react';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { Activity, FileSpreadsheet, Link2, Plus } from 'lucide-react';
+import { HeaderAdd, ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Chip';
 import { Num } from '@/components/ui/Num';
@@ -11,7 +11,7 @@ import { newSession, saveSession, toLoadEntries } from '@/db/rpeRepo';
 import { SESSION_TYPE_LABEL, type Player, type Team, type TrainingSession } from '@/db/types';
 import { useCloud } from '@/cloud/client';
 import { publishSurvey } from '@/cloud/surveys';
-import { LOAD_CONFIG, entryTL } from '@/engine/load';
+import { LOAD_CONFIG } from '@/engine/load';
 import { fmtMedium, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { toast } from '@/store/feedback';
@@ -193,13 +193,11 @@ export function RpeScreen() {
     <>
       <ScreenHeader
         title="RPE"
-        subtitle={team ? `${team.name} · carico interno (sRPE)` : 'Carico interno'}
+        subtitle={team?.name ?? 'Carico interno'}
         right={
           !readOnly &&
           view === 'sessions' && (
-            <Button variant="primary" size="sm" icon={<Plus size={18} />} onClick={createSession}>
-              Seduta
-            </Button>
+            <HeaderAdd label="Nuova seduta" onClick={createSession} />
           )
         }
       />
@@ -237,54 +235,37 @@ export function RpeScreen() {
               </div>
             ) : (
               <>
-                <SectionTitle
-                  right={
-                    !readOnly && (
-                      <button onClick={() => setImportOpen(true)} className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-bold text-accent-light active:scale-95">
-                        <FileSpreadsheet size={15} /> Importa Excel
-                      </button>
-                    )
-                  }
-                >
-                  Sedute · {sessions.length}
-                </SectionTitle>
+                <SectionTitle>{sessions.length} sedute</SectionTitle>
                 <div className="stagger space-y-2">
                   {sessions.map((s) => {
                     const es = (entries ?? []).filter((e) => e.sessionId === s.id && e.rpe != null && players.some((p) => p.id === e.playerId));
                     const avgRpe = es.length ? es.reduce((a, e) => a + (e.rpe ?? 0), 0) / es.length : null;
-                    const avgTl = es.length ? es.reduce((a, e) => a + (entryTL({ rpe: e.rpe, minutes: e.minutes ?? s.minutes }) ?? 0), 0) / es.length : null;
                     const complete = es.length >= players.length && players.length > 0;
                     return (
-                      <button key={s.id} onClick={() => (haptic.tap(), setOpen(s))} className="card pressable flex w-full items-center gap-3 p-3 text-left">
-                        <div className="flex w-14 shrink-0 flex-col items-center rounded-xl bg-bar py-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">{fmtMedium(s.date).split(' ')[0]}</span>
-                          <span className="font-display text-2xl font-bold leading-none">{+s.date.slice(8, 10)}</span>
-                          <span className="text-[11px] font-semibold uppercase text-brand-text">{fmtMedium(s.date).split(' ')[2]}</span>
+                      <button key={s.id} onClick={() => (haptic.tap(), setOpen(s))} className="card pressable flex w-full items-center gap-3 px-3 py-2.5 text-left">
+                        <div className="w-11 shrink-0 text-center">
+                          <div className="font-display text-[22px] font-bold leading-none">{+s.date.slice(8, 10)}</div>
+                          <div className="text-[11px] font-semibold uppercase text-ink-muted">{fmtMedium(s.date).split(' ')[2]}</div>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <b className="block truncate text-[16px]">{SESSION_TYPE_LABEL[s.type]}</b>
+                          <div className="flex items-center gap-1.5 truncate text-[15px] font-semibold">
+                            {SESSION_TYPE_LABEL[s.type]}
+                            {s.surveyToken && s.surveyOpen !== false && <Link2 size={14} className="shrink-0 text-accent-light" aria-label="link aperto" />}
+                          </div>
                           <div className="text-[13px] text-ink-muted">
-                            {s.minutes}′ ·{' '}
-                            <span className={complete ? 'text-ok' : es.length ? 'text-warn' : 'text-ink-muted'}>
-                              {es.length}/{players.length} risposte
-                            </span>
-                            {s.surveyToken && (
-                              <span className={s.surveyOpen === false ? 'text-ink-muted' : 'text-accent-light'}>
-                                {' '}
-                                · <Link2 size={13} className="inline -translate-y-px" /> {s.surveyOpen === false ? 'link chiuso' : 'link aperto'}
-                              </span>
-                            )}
+                            {s.minutes}′ · <span className={complete ? 'text-ok' : undefined}>{es.length}/{players.length} risposte</span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Num value={fmt(avgRpe, 1)} className="text-[24px]" style={{ color: rpeColor(avgRpe) }} />
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">TL {fmt(avgTl)}</div>
-                        </div>
-                        <ChevronRight size={18} className="text-ink-faint" />
+                        <Num value={fmt(avgRpe, 1)} className="text-[24px]" style={{ color: rpeColor(avgRpe) }} />
                       </button>
                     );
                   })}
                 </div>
+                {!readOnly && (
+                  <button onClick={() => setImportOpen(true)} className="mx-auto mt-5 flex h-10 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold text-ink-muted active:scale-95">
+                    <FileSpreadsheet size={15} /> Importa da Excel
+                  </button>
+                )}
               </>
             )}
           </>

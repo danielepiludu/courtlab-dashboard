@@ -139,7 +139,7 @@ npm run icons        # rigenera logo squadra (assets/logo-source.png) e icone ap
 
 1. Una tantum, nel repository GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 2. Ogni push su `main` esegue `.github/workflows/deploy.yml`: `npm ci` → `npm test` → `npm run build` con `VITE_BASE=/<nome-repo>/` → pubblicazione.
-3. L'app è su `https://<utente>.github.io/<nome-repo>/` (qui: `https://danielepiludu.github.io/minuti-basket-pro/`).
+3. L'app è su `https://<utente>.github.io/<nome-repo>/` (qui: `https://danielepiludu.github.io/courtlab-dashboard/`).
 
 Il **base path** si imposta con la variabile `VITE_BASE` (vedi `vite.config.ts`): `/` in locale, `/<nome-repo>/` su GitHub Pages, `./` per Capacitor. Manifest, service worker, icone e logo usano tutti il base path.
 

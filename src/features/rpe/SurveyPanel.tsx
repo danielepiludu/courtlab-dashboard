@@ -88,47 +88,43 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
       toast(open ? 'Raccolta riaperta' : 'Raccolta chiusa: gli atleti non possono più rispondere');
     });
 
+  const small = 'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-ink-muted active:scale-95 disabled:opacity-40';
   return (
-    <div className="mb-4 rounded-2xl border border-line bg-night/40 p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <Link2 size={18} className="text-accent-light" />
-        <b className="flex-1 text-[15px]">Link per gli atleti</b>
-        {token && (
-          <span className={cx('rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide', session.surveyOpen === false ? 'bg-white/10 text-ink-muted' : 'bg-ok/15 text-ok')}>
-            {session.surveyOpen === false ? 'Chiusa' : 'Aperta'}
-          </span>
-        )}
-      </div>
+    <div className="mb-4 rounded-2xl bg-surface p-3">
       {!cloudConfigured() || !logged ? (
-        <>
-          <p className="mb-3 text-[13px] leading-relaxed text-ink-muted">Gli atleti aprono il link dal telefono, scelgono il loro nome e l'RPE: senza installare nulla. Serve l'accesso a Courtlab Cloud.</p>
-          <Button className="w-full" onClick={() => setLogin(true)}>
-            {cloudConfigured() ? 'Accedi a Courtlab Cloud' : 'Attiva Courtlab Cloud'}
+        <div className="flex items-center gap-3">
+          <Link2 size={18} className="shrink-0 text-ink-muted" />
+          <span className="flex-1 text-[14px] text-ink-muted">Link RPE per gli atleti</span>
+          <Button size="sm" onClick={() => setLogin(true)}>
+            {cloudConfigured() ? 'Accedi' : 'Attiva'}
           </Button>
-        </>
+        </div>
       ) : !token ? (
-        <>
-          <p className="mb-3 text-[13px] leading-relaxed text-ink-muted">Crea il link e mandalo nel gruppo della squadra: le risposte compaiono qui sotto da sole.</p>
-          <Button variant="primary" className="w-full" disabled={busy} icon={<Share2 size={18} />} onClick={create}>
-            {busy ? 'Creazione…' : 'Crea link per gli atleti'}
-          </Button>
-        </>
+        <Button variant="primary" className="w-full" disabled={busy} icon={<Share2 size={18} />} onClick={create}>
+          {busy ? 'Creazione…' : 'Crea link per gli atleti'}
+        </Button>
       ) : (
         <>
-          <div className="mb-3 truncate rounded-lg bg-black/25 px-3 py-2 font-mono text-[12px] text-ink-muted">{url.replace(/^https?:\/\//, "")}</div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="primary" icon={<Share2 size={18} />} onClick={() => void share()}>
+          <div className="flex items-center gap-3">
+            <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', session.surveyOpen === false ? 'bg-ink-faint' : 'bg-ok')} />
+            <span className="min-w-0 flex-1 text-[14px]">
+              <b>Link per gli atleti</b>
+              <span className="text-ink-muted"> · {session.surveyOpen === false ? 'chiuso' : 'aperto'}</span>
+            </span>
+            <Button variant="primary" size="sm" icon={<Share2 size={16} />} onClick={() => void share()}>
               Condividi
             </Button>
-            <Button icon={<Copy size={18} />} onClick={() => void copy()}>
-              Copia
-            </Button>
-            <Button disabled={busy} icon={<RefreshCw size={18} className={busy ? 'animate-spin' : ''} />} onClick={refresh}>
-              Aggiorna
-            </Button>
-            <Button disabled={busy} icon={session.surveyOpen === false ? <LockOpen size={18} /> : <Lock size={18} />} onClick={toggle}>
-              {session.surveyOpen === false ? 'Riapri' : 'Chiudi'}
-            </Button>
+          </div>
+          <div className="-mb-1 mt-1 flex flex-wrap gap-0.5 pl-4">
+            <button className={small} onClick={() => void copy()}>
+              <Copy size={14} /> Copia
+            </button>
+            <button className={small} disabled={busy} onClick={refresh}>
+              <RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> Aggiorna
+            </button>
+            <button className={small} disabled={busy} onClick={toggle}>
+              {session.surveyOpen === false ? <LockOpen size={14} /> : <Lock size={14} />} {session.surveyOpen === false ? 'Riapri' : 'Chiudi'}
+            </button>
           </div>
         </>
       )}

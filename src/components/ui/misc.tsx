@@ -13,8 +13,8 @@ export function Field({ label, children, hint, className }: { label: string; chi
 
 export function EmptyState({ icon, title, text, action }: { icon: ReactNode; title: string; text: string; action?: ReactNode }) {
   return (
-    <div className="anim-rise flex flex-col items-center rounded-3xl border border-dashed border-line bg-surface/50 px-6 py-10 text-center">
-      <div className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-bar text-accent-light">{icon}</div>
+    <div className="anim-rise flex flex-col items-center px-6 py-10 text-center">
+      <div className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-surface text-accent-light">{icon}</div>
       <b className="font-display text-xl font-bold tracking-wide">{title}</b>
       <p className="mt-1 max-w-xs text-[15px] text-ink-muted">{text}</p>
       {action && <div className="mt-5">{action}</div>}
@@ -24,8 +24,8 @@ export function EmptyState({ icon, title, text, action }: { icon: ReactNode; tit
 
 export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
-    <div className="mb-2 mt-6 flex items-end justify-between px-1">
-      <h2 className="font-display text-[13px] font-bold uppercase tracking-[0.18em] text-ink-muted">{children}</h2>
+    <div className="mb-2 mt-7 flex min-h-[28px] items-end justify-between px-1">
+      <h2 className="text-[14px] font-semibold text-ink-muted">{children}</h2>
       {right}
     </div>
   );

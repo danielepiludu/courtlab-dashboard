@@ -100,7 +100,7 @@ export function LoadPanels({ days, selected, onSelect, barTitle = 'Carico (TL)',
   );
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-line bg-night/40">
+    <div className="relative overflow-hidden rounded-2xl bg-surface">
       <div ref={scroller} className="no-scrollbar overflow-x-auto">
         <svg width={Math.max(W, 300)} height={H} className="block select-none" role="img" aria-label="Grafico del carico giorno per giorno">
           <defs>

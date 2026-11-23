@@ -133,7 +133,7 @@ export function ExportSheet({
           </Field>
         </div>
       )}
-      <div className="mb-4 rounded-2xl border border-line bg-night/40 p-3 text-[14px] leading-relaxed text-ink-muted">
+      <div className="mb-4 rounded-2xl bg-surface p-3 text-[14px] leading-relaxed text-ink-muted">
         <b className="text-ink">
           {report.sessions.length} sedute{report.matchSessions ? ` (${report.matchSessions} partite)` : ''} · {rpeCount} RPE
         </b>
@@ -143,7 +143,7 @@ export function ExportSheet({
       </div>
 
       {!athlete && (
-        <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-2xl border border-line bg-night/40 p-3">
+        <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-2xl bg-surface p-3">
           <input type="checkbox" className="h-5 w-5 accent-[var(--c-select)]" checked={pages} onChange={(e) => setPages(e.target.checked)} />
           <span className="text-[14px]">
             <b className="block">Pagina per ogni atleta nel PDF</b>
