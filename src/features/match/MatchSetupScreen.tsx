@@ -1,6 +1,6 @@
 import { shortSurname } from '@/db/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, CalendarPlus, Check, CirclePlay, MapPin, Plane, Radio, Star, Users, Zap } from 'lucide-react';
+import { Archive, CalendarPlus, Check, CirclePlay, Lock, MapPin, Plane, Radio, Star, Users, Zap } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { RoleBadge, STATUS_META } from '@/components/ui/Badges';
@@ -10,7 +10,7 @@ import { useActiveTeam, useGames, usePlayers } from '@/db/hooks';
 import { saveGame, setTeamArchived } from '@/db/repo';
 import { db } from '@/db/db';
 import type { Game, Player } from '@/db/types';
-import { fmtDayMonth, relativeDay, todayISO } from '@/lib/dates';
+import { fmtDayMonth, relativeDay, todayISO, canStartOn, fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { enterGameMode } from '@/lib/device';
 import { cx } from '@/lib/cx';
@@ -36,14 +36,26 @@ function StepTitle({ n, title, right }: { n: number; title: string; right?: Reac
 
 function GameCard({ g, selected, onClick }: { g: Game; selected: boolean; onClick: () => void }) {
   const today = g.date === todayISO();
+  // partita futura: visibile ma bloccata fino al suo giorno
+  const locked = !canStartOn(g.date);
   return (
     <button
-      onClick={onClick}
+      onClick={
+        locked
+          ? () => {
+              haptic.warn();
+              toast(`Si potrà iniziare ${fmtLong(g.date, false).toLowerCase()}, il giorno della partita`, 'info', 3200);
+            }
+          : onClick
+      }
+      aria-disabled={locked}
       className={cx(
         'pressable relative w-[200px] shrink-0 rounded-2xl border p-3.5 text-left transition-shadow',
         selected ? 'border-accent bg-accent/15 shadow-glow' : 'border-line bg-surface',
+        locked && 'opacity-55',
       )}
     >
+      {locked && <Lock size={15} className="absolute right-3 top-3 text-ink-muted" aria-label="Non ancora disponibile" />}
       {selected && (
         <span className="anim-pop absolute right-2.5 top-2.5 grid h-6 w-6 place-items-center rounded-full bg-accent text-on-accent">
           <Check size={15} strokeWidth={3} />
@@ -112,7 +124,8 @@ export function MatchSetupScreen() {
   }, [games, today]);
   const all = useMemo(() => players ?? [], [players]);
   const byId = useMemo(() => new Map(all.map((p) => [p.id!, p])), [all]);
-  const game = selectable.find((g) => g.id === setup.gameId);
+  // solo le partite di oggi o passate non giocate si possono selezionare
+  const game = selectable.find((g) => g.id === setup.gameId && canStartOn(g.date));
 
   // Pulizia della bozza: giocatori eliminati, infortunati non ammessi
   useEffect(() => {
