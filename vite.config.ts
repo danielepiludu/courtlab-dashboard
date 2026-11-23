@@ -6,12 +6,24 @@ import { fileURLToPath, URL } from 'node:url';
 
 // VITE_BASE: '/' in locale, '/<repo>/' su GitHub Pages, './' per Capacitor.
 const base = process.env.VITE_BASE ?? '/';
+// indirizzo pubblico completo (per le anteprime dei link nelle chat), es. https://utente.github.io/repo/
+const site = process.env.VITE_SITE_URL ?? '';
 
 export default defineConfig({
   base,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  build: {
+    rollupOptions: {
+      // due pagine: l'app dello staff e la pagina leggera del link RPE per gli atleti
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        rpe: fileURLToPath(new URL('./rpe/index.html', import.meta.url)),
+      },
+    },
+  },
   plugins: [
     react(),
+    { name: 'site-url', transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', site) },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'icons/favicon-64.png', 'icons/apple-touch-icon.png', 'icons/app-logo.png'],
@@ -38,6 +50,8 @@ export default defineConfig({
         // moduli opzionali di jsPDF mai usati dall'app (html(), SVG): non servono offline
         globIgnores: ['**/html2canvas*', '**/purify.es*', '**/index.es-*'],
         navigateFallback: 'index.html',
+        // la pagina del link atleti non deve mai essere sostituita dall'app dello staff
+        navigateFallbackDenylist: [/\/rpe\//],
         cleanupOutdatedCaches: true,
       },
     }),

@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "icons": "python3 scripts/make-icons.py && node scripts/make-app-icons.cjs",
+    "icons": "python3 scripts/make-icons.py && node scripts/make-app-icons.cjs && node scripts/make-og.cjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

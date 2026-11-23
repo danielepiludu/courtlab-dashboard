@@ -42,23 +42,29 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
       await share(surveyUrl(t));
     });
 
+  const message = () => {
+    const day = fmtLong(session.date).replace(/ \d{4}$/, '').toLowerCase();
+    return `🏀 ${team?.name ?? 'Allenamento'}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}.\nTocca il link, scegli il tuo nome e indica quanto è stato faticoso:`;
+  };
+
   const share = async (link = url) => {
-    const text = `${team?.name ?? ''} · RPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${fmtLong(session.date).toLowerCase()}. Scegli il tuo nome e indica quanto è stato faticoso:`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'RPE allenamento', text, url: link });
+        await navigator.share({ title: 'RPE allenamento', text: message(), url: link });
         return;
       } catch (e) {
         if ((e as DOMException)?.name === 'AbortError') return;
       }
     }
-    await copy(link);
+    await copy(link, true);
   };
 
-  const copy = async (link = url) => {
+  /** Copia solo il link, oppure messaggio + link pronti da incollare. */
+  const copy = async (link = url, withText = false) => {
+    const text = withText ? `${message()}\n${link}` : link;
     try {
-      await navigator.clipboard.writeText(link);
-      toast('Link copiato', 'success');
+      await navigator.clipboard.writeText(text);
+      toast(withText ? 'Messaggio con link copiato' : 'Link copiato', 'success');
     } catch {
       window.prompt('Copia il link', link);
     }
@@ -108,7 +114,7 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
         </>
       ) : (
         <>
-          <div className="mb-3 truncate rounded-lg bg-black/25 px-3 py-2 font-mono text-[12px] text-ink-muted">{url}</div>
+          <div className="mb-3 truncate rounded-lg bg-black/25 px-3 py-2 font-mono text-[12px] text-ink-muted">{url.replace(/^https?:\/\//, "")}</div>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="primary" icon={<Share2 size={18} />} onClick={() => void share()}>
               Condividi
