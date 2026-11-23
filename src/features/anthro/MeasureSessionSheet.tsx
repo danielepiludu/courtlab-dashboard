@@ -10,7 +10,7 @@ import { fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { confirmDialog, toast } from '@/store/feedback';
-import { deleteMeasureSession, saveMeasureSession, sessionLabel, setMeasureNote, setMeasureValue } from './measuresRepo';
+import { clearMeasureInSession, deleteMeasureSession, saveMeasureSession, sessionLabel, setMeasureNote, setMeasureValue } from './measuresRepo';
 
 const GROUPS: MeasureGroup[] = ['generali', 'circonferenze', 'salti', 'valutazioni'];
 const toInput = (v: number | string | undefined) => (v == null ? '' : typeof v === 'number' ? String(v).replace('.', ',') : v);
@@ -286,9 +286,25 @@ function StationMode({ session, players, measures, prevOf }: { session: MeasureS
           </button>
         ))}
       </div>
-      <p className="mb-2 px-1 text-[13px] text-ink-muted">
-        <b className="text-ink">{def.label}</b> ({def.unit}) · {done}/{players.length}
-      </p>
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <p className="min-w-0 flex-1 text-[13px] text-ink-muted">
+          <b className="text-ink">{def.label}</b> ({def.unit}) · {done}/{players.length}
+        </p>
+        {done > 0 && (
+          <button
+            type="button"
+            className="shrink-0 text-[13px] font-semibold text-danger"
+            onClick={async () => {
+              const ok = await confirmDialog({ title: `Svuotare ${def.short}?`, message: `Verranno tolti i valori di ${def.label} di ${done} atleti in questa rilevazione (es. test non eseguito).`, confirmLabel: 'Svuota', danger: true });
+              if (!ok) return;
+              const n = await clearMeasureInSession(session, def.id);
+              toast(`${def.short}: tolti ${n} valori`);
+            }}
+          >
+            Svuota
+          </button>
+        )}
+      </div>
       <div className="rounded-2xl bg-surface px-3 py-1">
         {players.map((p, i) => {
           const prev = prevOf(p.id!, def.id);

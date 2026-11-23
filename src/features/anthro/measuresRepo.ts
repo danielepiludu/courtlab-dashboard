@@ -129,3 +129,19 @@ export function setMeasureNote(
     });
   });
 }
+
+/** Toglie una misura a tutti gli atleti della rilevazione (es. test non eseguito quel giorno). Restituisce quanti valori ha tolto. */
+export function clearMeasureInSession(session: MeasureSession, measureId: string) {
+  return db.transaction('rw', db.measures, async () => {
+    let n = 0;
+    for (const m of await db.measures.where('sessionId').equals(session.id!).toArray()) {
+      if (m.values[measureId] == null) continue;
+      n++;
+      const values = { ...m.values };
+      delete values[measureId];
+      if (!Object.keys(values).length && !m.note) await db.measures.delete(m.id!);
+      else await db.measures.put({ ...m, values, updatedAt: Date.now() });
+    }
+    return n;
+  });
+}
