@@ -48,13 +48,13 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
   return (
     <Sheet open={open} onClose={onClose} elevated title="Courtlab Cloud" subtitle="Dati su tutti i dispositivi e link RPE per gli atleti">
       {!cloudConfigured() ? (
-        <div className="flex gap-3 rounded-2xl border border-line bg-night/40 p-4 text-[14px] leading-relaxed text-ink-muted">
+        <div className="flex gap-3 rounded-2xl bg-surface p-4 text-[14px] leading-relaxed text-ink-muted">
           <CloudOff size={22} className="mt-0.5 shrink-0 text-warn" />
           <span>Il servizio online non è ancora collegato a questa versione dell'app. Va configurato una volta sola (progetto Supabase gratuito): poi qui potrai accedere.</span>
         </div>
       ) : session ? (
         <>
-          <div className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-night/40 p-4">
+          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-surface p-4">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-ok/15 text-ok">
               <Cloud size={22} />
             </span>
@@ -118,7 +118,7 @@ function SyncStatus() {
   const { text, tone } = useSyncLabel();
   const syncing = useSync((x) => x.phase === 'syncing');
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-night/40 p-3">
+    <div className="mb-4 flex items-center gap-3 rounded-2xl bg-surface p-3">
       <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', tone === 'ok' ? 'bg-ok' : tone === 'warn' ? 'bg-warn' : tone === 'error' ? 'bg-danger' : 'bg-ink-faint', syncing && 'animate-pulse')} />
       <span className={cx('min-w-0 flex-1 text-[14px]', tone === 'error' ? 'text-danger' : 'text-ink')}>{text}</span>
       <Button size="sm" disabled={syncing} icon={<RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />} onClick={retrySync}>

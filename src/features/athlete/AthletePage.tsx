@@ -178,7 +178,7 @@ export default function AthletePage({ token }: { token: string }) {
             {s.roster.map((r) => {
               const done = s.answered.includes(r.id);
               return (
-                <button key={r.id} onClick={() => (vibrate(10), setMe(r), setRpe(null))} className="flex min-h-[64px] items-center gap-2.5 rounded-2xl border border-line bg-surface px-2.5 py-2 text-left active:scale-[.97]">
+                <button key={r.id} onClick={() => (vibrate(10), setMe(r), setRpe(null))} className="flex min-h-[64px] items-center gap-2.5 rounded-2xl bg-surface px-2.5 py-2 text-left active:scale-[.97]">
                   <span className="relative">
                     <Avatar r={r} size={44} />
                     {done && (

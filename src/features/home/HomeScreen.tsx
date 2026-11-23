@@ -7,7 +7,7 @@ import { EmptyState, SectionTitle } from '@/components/ui/misc';
 import { TeamLogo } from '@/components/TeamLogo';
 import { useActiveTeam, useGames } from '@/db/hooks';
 import { newGame } from '@/db/repo';
-import { outcomeOf, type Game } from '@/db/types';
+import { type Game } from '@/db/types';
 import { fmtLong, parseISODate, relativeDay, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { useSetup, useUI } from '@/store/ui';
@@ -77,7 +77,6 @@ export function HomeScreen() {
   const next = upcoming[0];
   const finished = all.filter((g) => g.status === 'finished').reverse();
   const dayGames = all.filter((g) => g.date === selected);
-  const wins = finished.filter((g) => outcomeOf(g) === 'W').length;
 
   const changeMonth = (d: 1 | -1) => {
     haptic.tap();
@@ -145,21 +144,6 @@ export function HomeScreen() {
           />
         )}
 
-        {finished.length > 0 && (
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            {[
-              { l: 'Giocate', v: finished.length, c: 'text-ink' },
-              { l: 'Vinte', v: wins, c: 'text-ok' },
-              { l: 'Perse', v: finished.length - wins - finished.filter((g) => outcomeOf(g) === 'D').length, c: 'text-brand-text' },
-            ].map((s) => (
-              <div key={s.l} className="card py-2.5">
-                <div className={`font-display text-2xl font-bold leading-none ${s.c}`}>{s.v}</div>
-                <div className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-ink-muted">{s.l}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <SectionTitle>Calendario</SectionTitle>
         <MonthCalendar
           month={month}
@@ -180,30 +164,25 @@ export function HomeScreen() {
           }}
         />
 
-        <SectionTitle
-          right={
-            !readOnly && (
-              <button onClick={() => setEditing(newGame(teamId, selected))} className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-bold text-accent-light active:scale-95">
-                <Plus size={16} /> Aggiungi
-              </button>
-            )
-          }
-        >
-          {selected === today ? 'Oggi' : fmtLong(selected, false)}
-        </SectionTitle>
-        <div key={selected} className="stagger space-y-2">
-          {dayGames.length ? (
-            dayGames.map((g) => <GameRow key={g.id} game={g} onClick={() => openGame(g)} />)
-          ) : (
-            <div className="anim-fade rounded-2xl border border-dashed border-line px-4 py-4 text-center text-[14px] text-ink-muted">Nessuna partita in questa data</div>
-          )}
-        </div>
+        {/* partite del giorno scelto nel calendario (oggi: già in evidenza in alto) */}
+        {(selected !== today || dayGames.some((g) => g.id !== next?.id)) && (
+          <>
+            <SectionTitle>{selected === today ? 'Oggi' : fmtLong(selected, false)}</SectionTitle>
+            <div key={selected} className="stagger space-y-2">
+              {dayGames.length ? (
+                dayGames.map((g) => <GameRow key={g.id} game={g} onClick={() => openGame(g)} />)
+              ) : (
+                <p className="anim-fade px-1 text-[14px] text-ink-faint">Nessuna partita in questa data</p>
+              )}
+            </div>
+          </>
+        )}
 
         {upcoming.length > 1 && (
           <>
             <SectionTitle>Prossime partite</SectionTitle>
             <div className="stagger space-y-2">
-              {upcoming.slice(1, 7).map((g) => (
+              {upcoming.slice(1, 4).map((g) => (
                 <GameRow key={g.id} game={g} onClick={() => openGame(g)} />
               ))}
             </div>
@@ -214,15 +193,15 @@ export function HomeScreen() {
           <>
             <SectionTitle
               right={
-                <button onClick={() => setTab('reports')} className="h-9 rounded-full px-3 text-sm font-bold text-accent-light active:scale-95">
-                  Tutti i resoconti
+                <button onClick={() => setTab('reports')} className="h-8 rounded-full px-2 text-[13px] font-semibold text-accent-light active:scale-95">
+                  Tutti
                 </button>
               }
             >
               Risultati recenti
             </SectionTitle>
             <div className="stagger space-y-2">
-              {finished.slice(0, 3).map((g) => (
+              {finished.slice(0, 2).map((g) => (
                 <GameRow key={g.id} game={g} onClick={() => openGame(g)} />
               ))}
             </div>

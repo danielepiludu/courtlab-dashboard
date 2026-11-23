@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Archive } from 'lucide-react';
+import { Archive, Plus } from 'lucide-react';
 import { cx } from '@/lib/cx';
 import { useActiveTeam } from '@/db/hooks';
 import { setTeamArchived } from '@/db/repo';
@@ -11,7 +11,7 @@ export function ScreenHeader({ title, subtitle, left, right, className }: { titl
   const team = useActiveTeam();
   return (
     <header
-      className={cx('sticky top-0 z-30 border-b border-white/5 bg-bar/95 shadow-[0_10px_30px_-18px_rgba(0,0,0,.9)] backdrop-blur', className)}
+      className={cx('sticky top-0 z-30 border-b border-white/5 bg-bar/95 backdrop-blur', className)}
       style={{ paddingTop: 'var(--safe-top)' }}
     >
       <div className="mx-auto flex h-16 max-w-2xl items-center gap-3 px-4">
@@ -19,7 +19,7 @@ export function ScreenHeader({ title, subtitle, left, right, className }: { titl
         {(title || subtitle) && (
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-[26px] font-bold leading-none tracking-wide">{title}</h1>
-            {subtitle && <div className="mt-1 truncate text-[13px] font-medium text-ink-muted">{subtitle}</div>}
+            {subtitle && <div className="mt-1 truncate text-[12.5px] text-ink-muted">{subtitle}</div>}
           </div>
         )}
         {right}
@@ -43,5 +43,22 @@ export function ScreenHeader({ title, subtitle, left, right, className }: { titl
         </div>
       )}
     </header>
+  );
+}
+
+/** Azione principale nell'header: un solo pulsante rotondo "+" (meno ingombrante di un pulsante con testo). */
+export function HeaderAdd({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={() => {
+        haptic.select();
+        onClick();
+      }}
+      aria-label={label}
+      title={label}
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-on-brand transition active:scale-90"
+    >
+      <Plus size={24} strokeWidth={2.6} />
+    </button>
   );
 }

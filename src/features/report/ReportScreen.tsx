@@ -248,7 +248,7 @@ export function ReportScreen() {
                   </div>
 
                   {/* Legenda */}
-                  <div className="mt-5 grid gap-3 rounded-2xl border border-line bg-surface/60 p-4 text-[12.5px] leading-relaxed text-ink-muted sm:grid-cols-2">
+                  <div className="mt-5 grid gap-3 rounded-2xl bg-surface p-4 text-[12.5px] leading-relaxed text-ink-muted sm:grid-cols-2">
                     <div>
                       <b className="text-ink">INT</b>: carico di fatica dello stint (0 fresco, 1 massimo). <b className="text-ink">Medio</b> = media sull'intera partita, campo e panchina;{' '}
                       <b className="text-ink">picco</b> = valore massimo raggiunto.

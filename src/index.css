@@ -149,13 +149,14 @@
     @apply h-12 w-full rounded-xl border border-line bg-night/60 px-3.5 text-[16px] text-ink outline-none transition placeholder:text-ink-faint focus:border-accent focus:bg-night focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--c-select)_25%,transparent)];
   }
   .label {
-    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted;
+    @apply mb-1.5 block text-[12.5px] font-semibold text-ink-muted;
   }
   .section-title {
     @apply mb-2 flex items-center gap-2 px-1 text-[12px] font-bold uppercase tracking-[0.16em] text-ink-muted;
   }
+  /* riquadro sobrio: niente bordo né ombra, solo una superficie appena più chiara */
   .card {
-    @apply rounded-2xl border border-line bg-surface shadow-card;
+    @apply rounded-2xl bg-surface;
   }
   .pressable {
     @apply transition-transform duration-150 ease-out active:scale-[0.97];

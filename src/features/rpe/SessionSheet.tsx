@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Trash } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
-import { Num } from '@/components/ui/Num';
 import { Field } from '@/components/ui/misc';
+import { Segmented } from '@/components/ui/Chip';
 import type { Player, RpeEntry, TrainingSession } from '@/db/types';
 import { SESSION_TYPES, SESSION_TYPE_LABEL } from '@/db/types';
 import { deleteSession, saveSession, setRpe } from '@/db/rpeRepo';
@@ -141,20 +141,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
         }
       >
         <fieldset disabled={readOnly} className="min-w-0">
-          <div className="mb-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo di seduta">
-            {SESSION_TYPES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="radio"
-                aria-checked={s.type === t}
-                onClick={() => (haptic.select(), void update({ type: t }))}
-                className={cx('h-11 rounded-xl border text-[14px] font-bold', s.type === t ? 'border-accent bg-accent/20 text-ink' : 'border-line text-ink-muted')}
-              >
-                {SESSION_TYPE_LABEL[t]}
-              </button>
-            ))}
-          </div>
+          <Segmented className="mb-4" value={s.type} onChange={(t) => (haptic.select(), void update({ type: t }))} options={SESSION_TYPES.map((t) => ({ value: t, label: SESSION_TYPE_LABEL[t] }))} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Data">
               <input type="date" className="input" value={s.date} onChange={(e) => void update({ date: e.target.value })} />
@@ -163,40 +150,33 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
               <input className="input" inputMode="numeric" value={s.minutes || ''} onChange={(e) => void update({ minutes: Number(e.target.value.replace(/\D/g, '').slice(0, 3)) })} />
             </Field>
           </div>
-          <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-            <div className="card py-2">
-              <Num value={`${answered.length}/${players.length}`} className="text-[22px]" />
-              <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Risposte</div>
-            </div>
-            <div className="card py-2">
-              <Num value={avgRpe == null ? '–' : avgRpe.toFixed(1).replace('.', ',')} className="text-[22px]" style={{ color: rpeColor(avgRpe) }} />
-              <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">RPE medio</div>
-            </div>
-            <div className="card py-2">
-              <Num value={avgTl == null ? '–' : Math.round(avgTl)} className="text-[22px]" />
-              <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">TL medio</div>
-            </div>
-          </div>
+          <p className="-mt-1 mb-4 px-1 text-[14px] text-ink-muted">
+            <b className="text-ink">
+              {answered.length}/{players.length}
+            </b>{' '}
+            risposte · RPE medio{' '}
+            <b style={{ color: rpeColor(avgRpe) }}>{avgRpe == null ? '–' : avgRpe.toFixed(1).replace('.', ',')}</b> · TL medio <b className="text-ink">{avgTl == null ? '–' : Math.round(avgTl)}</b>
+          </p>
           {!readOnly && s.id != null && <SurveyPanel session={s} players={players} />}
-          <div className="space-y-1.5">
+          <div className="overflow-hidden rounded-2xl bg-surface">
             {players.map((p) => {
               const e = mine.get(p.id!);
-              const tl = e?.rpe != null ? entryTL({ rpe: e.rpe, minutes: e.minutes ?? s.minutes }) : null;
               return (
-                <button key={p.id} onClick={() => (haptic.tap(), setPicking(p))} className="pressable flex min-h-[54px] w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-1.5 text-left">
+                <button key={p.id} onClick={() => (haptic.tap(), setPicking(p))} className="flex min-h-[56px] w-full items-center gap-3 border-t border-white/[.05] px-3 py-1.5 text-left first:border-t-0 active:bg-white/[.04]">
                   <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-3 font-display text-sm font-bold">
                     {p.photo ? <img src={p.photo} alt="" className="h-full w-full object-cover" /> : p.number || '–'}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <b className="block truncate text-[15px]">
-                      <span className="text-brand-text">{p.number}</span> {p.name}
-                    </b>
-                    <span className="text-[12px] text-ink-muted">
-                      {e?.rpe != null ? `${RPE_SCALE.find((x) => x.value === e.rpe)?.label ?? ''}${e.minutes != null ? ` · ${e.minutes}′` : ''}${e.source === 'atleta' ? ' · dall\'atleta' : ''}` : 'Nessuna risposta'}
-                    </span>
+                    <span className="block truncate text-[15px] font-semibold">{p.name}</span>
+                    {e?.rpe != null && (
+                      <span className="block truncate text-[12px] text-ink-muted">
+                        {RPE_SCALE.find((x) => x.value === e.rpe)?.label ?? ''}
+                        {e.minutes != null ? ` · ${e.minutes}′` : ''}
+                        {e.source === 'atleta' ? ' · dal link' : ''}
+                      </span>
+                    )}
                   </span>
-                  {tl != null && <span className="text-[12px] font-semibold text-ink-muted">TL {tl}</span>}
-                  <span className={cx('grid h-11 w-11 place-items-center rounded-xl font-display text-[22px] font-extrabold tabular', e?.rpe == null && 'border border-dashed border-line text-ink-faint')} style={e?.rpe != null ? { color: rpeColor(e.rpe), background: 'rgba(0,0,0,.35)' } : undefined}>
+                  <span className={cx('w-10 text-center font-display text-[24px] font-extrabold tabular', e?.rpe == null && 'text-ink-faint')} style={e?.rpe != null ? { color: rpeColor(e.rpe) } : undefined}>
                     {e?.rpe != null ? fmtRpe(e.rpe) : '–'}
                   </span>
                 </button>

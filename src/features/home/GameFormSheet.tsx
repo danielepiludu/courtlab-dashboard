@@ -94,7 +94,7 @@ export function GameFormSheet({ game, readOnly = false, onClose, onSaved }: Prop
                 onClose();
                 openReport(draft.id!);
               }}
-              className="pressable mb-4 flex w-full items-center justify-between rounded-2xl border border-line bg-night/50 p-4 text-left"
+              className="pressable mb-4 flex w-full items-center justify-between rounded-2xl bg-surface p-4 text-left"
             >
               <div>
                 <div className="label !mb-0.5">Risultato finale</div>
