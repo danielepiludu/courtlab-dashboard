@@ -3,6 +3,7 @@
  * intestazione nel colore primario della squadra con il logo, dettagli nel colore secondario,
  * punteggio, migliori della partita, tabella dei convocati con mini-grafico dell'INT.
  */
+import { surnameFirst } from '@/db/types';
 import type { jsPDF as JsPDF } from 'jspdf';
 import type { Game, Team } from '@/db/types';
 import { contrast, hexToRgb, normalizeHex, darken } from '@/theme/color';
@@ -152,7 +153,7 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
     doc.text(label.toUpperCase(), bx + 4, y + 5.2);
     doc.setTextColor(...ink);
     doc.setFontSize(10);
-    doc.text(p ? `#${p.number} ${p.name}`.slice(0, 30) : '–', bx + 4, y + 11);
+    doc.text(p ? `#${p.number} ${surnameFirst(p.name)}`.slice(0, 30) : '–', bx + 4, y + 11);
     doc.setFontSize(13);
     doc.text(value, bx + bw - 3, y + 11, { align: 'right' });
   });
@@ -234,7 +235,7 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
     cx += cols[0].w;
     doc.setTextColor(...ink);
     doc.setFont('helvetica', p.starter ? 'bold' : 'normal');
-    doc.text((doc.splitTextToSize(p.name, cols[1].w - 9)[0] as string) ?? '', cx + 2, mid);
+    doc.text((doc.splitTextToSize(surnameFirst(p.name), cols[1].w - 9)[0] as string) ?? '', cx + 2, mid);
     if (p.starter) {
       doc.setFontSize(6.5);
       doc.setTextColor(...muted);

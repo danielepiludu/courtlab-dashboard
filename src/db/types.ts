@@ -110,6 +110,23 @@ export function surnameOf(name: string): string {
   return w.slice(i).join(' ');
 }
 
+/** "Nome Cognome" → "Cognome Nome": i giocatori si identificano per cognome. */
+export function surnameFirst(name: string): string {
+  const full = name.trim().replace(/\s+/g, ' ');
+  const sur = surnameOf(full);
+  const first = full.slice(0, full.length - sur.length).trim();
+  return first ? `${sur} ${first}` : sur;
+}
+
+/** Nome breve per schermate compatte: il cognome; con l'iniziale del nome se il cognome è ripetuto. */
+export function shortSurname(p: { id?: number; name: string }, all: { id?: number; name: string }[] = []): string {
+  const full = p.name.trim().replace(/\s+/g, ' ');
+  const sur = surnameOf(full);
+  const first = full.slice(0, full.length - sur.length).trim();
+  const dup = all.some((o) => o.id !== p.id && surnameOf(o.name).toLowerCase() === sur.toLowerCase());
+  return dup && first ? `${sur} ${first[0].toUpperCase()}.` : sur || full;
+}
+
 /** Ordine alfabetico per cognome, poi per nome. */
 export function compareSurname(a: { name: string }, b: { name: string }): number {
   return surnameOf(a.name).localeCompare(surnameOf(b.name), 'it', { sensitivity: 'base' }) || a.name.localeCompare(b.name, 'it', { sensitivity: 'base' });

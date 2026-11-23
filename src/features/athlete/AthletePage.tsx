@@ -6,6 +6,7 @@ import { RPE_SCALE } from '@/engine/load';
 import { intColor } from '@/lib/intColor';
 import { applyVars, themeVars } from '@/theme/apply';
 import { cx } from '@/lib/cx';
+import { shortSurname, surnameFirst } from '@/db/types';
 import { APP } from '@/config';
 
 const rpeColor = (v: number) => intColor(v / 10);
@@ -151,7 +152,7 @@ export default function AthletePage({ token }: { token: string }) {
               <Check size={22} strokeWidth={3.5} />
             </span>
           </span>
-          <h1 className="mt-6 font-display text-[34px] font-bold leading-tight">Grazie, {me.name.split(' ')[0]}!</h1>
+          <h1 className="mt-6 font-display text-[34px] font-bold leading-tight">Grazie, {shortSurname(me, s.roster)}!</h1>
           <p className="mt-2 text-[16px] text-ink-muted">Hai indicato</p>
           <div className="mt-1 flex items-baseline gap-3">
             <span className="font-display text-[64px] font-extrabold leading-none tabular" style={{ color: rpeColor(sent) }}>
@@ -188,7 +189,7 @@ export default function AthletePage({ token }: { token: string }) {
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold leading-tight">{r.name}</span>
+                    <span className="block text-[15px] font-semibold leading-tight">{surnameFirst(r.name)}</span>
                     {r.number && <span className="text-[12px] font-bold text-brand-text">#{r.number}</span>}
                   </span>
                 </button>
@@ -205,12 +206,12 @@ export default function AthletePage({ token }: { token: string }) {
       {header}
       <section className="px-5 pb-36">
         <button onClick={() => setMe(null)} className="mb-3 flex items-center gap-1 text-[14px] font-semibold text-ink-muted">
-          <ChevronLeft size={18} /> Non sei {me.name.split(' ')[0]}? Cambia
+          <ChevronLeft size={18} /> Non sei {shortSurname(me, s.roster)}? Cambia
         </button>
         <div className="mb-3 flex items-center gap-3">
           <Avatar r={me} size={56} />
           <div className="min-w-0">
-            <div className="truncate text-[18px] font-bold leading-tight">{me.name}</div>
+            <div className="truncate text-[18px] font-bold leading-tight">{surnameFirst(me.name)}</div>
             <div className="text-[13px] text-ink-muted">
               {me.number && <b className="text-brand-text">#{me.number}</b>}
               {me.number && already && ' · '}

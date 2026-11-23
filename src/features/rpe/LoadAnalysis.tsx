@@ -1,3 +1,4 @@
+import { surnameFirst } from '@/db/types';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronDown, FileDown, Minus, Plus } from 'lucide-react';
 import { Num } from '@/components/ui/Num';
@@ -210,7 +211,7 @@ export function LoadAnalysis({
                 {p.photo ? <img src={p.photo} alt="" className="h-full w-full object-cover" /> : p.number || initials(p.name)}
               </span>
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-semibold">{p.name}</span>
+                <span className="block truncate text-[15px] font-semibold">{surnameFirst(p.name)}</span>
                 <WlGauge value={wl} />
               </div>
               <WlValue value={wl} />
@@ -236,7 +237,7 @@ export function LoadAnalysis({
         <div className="min-w-0 flex-1">
           <b className="block truncate text-[18px]">
             {selected.number && <span className="text-brand-text">{selected.number} </span>}
-            {selected.name}
+            {surnameFirst(selected.name)}
           </b>
           <span className="text-[12px] text-ink-muted">Media mobile su {windowDays} giorni</span>
         </div>

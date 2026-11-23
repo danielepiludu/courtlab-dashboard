@@ -1,3 +1,4 @@
+import { surnameFirst } from '@/db/types';
 import { Sheet } from '@/components/ui/Sheet';
 import type { Player } from '@/db/types';
 import { INT_CONFIG } from '@/engine/intConfig';
@@ -69,7 +70,7 @@ export function IntDebugSheet({ open, onClose, v, now, players }: { open: boolea
             {rows.map(({ p, s, int, acute, regime, detail }) => (
               <tr key={p.id} className="border-b border-line/60">
                 <td className="py-1.5 pr-2 font-semibold">
-                  #{p.number} {p.name}
+                  #{p.number} {surnameFirst(p.name)}
                 </td>
                 <td className={cx('pr-2', s.onCourt ? 'text-accent-light' : 'text-ink-muted')}>{s.onCourt ? 'campo' : 'panchina'}</td>
                 <td className="pr-2 text-right font-bold" style={{ color: intColor(int) }} title={intLevel(int)}>

@@ -38,7 +38,7 @@ describe('PDF del resoconto', () => {
     expect(out).toContain('Pallacanestro Don Bosco Livorno');
     expect(out).toContain('Virtus Siena');
     expect(out).toContain('RESOCONTO PARTITA');
-    expect(out).toContain('Giocatore 1');
+    expect(out).toContain('1 Giocatore'); // i giocatori compaiono come "Cognome Nome"
     expect(out).toContain('VITTORIA');
   });
   it('compresso di default (file leggero)', async () => {

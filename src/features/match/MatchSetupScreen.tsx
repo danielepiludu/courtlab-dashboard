@@ -1,3 +1,4 @@
+import { shortSurname } from '@/db/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, CalendarPlus, Check, CirclePlay, MapPin, Plane, Radio, Star, Users, Zap } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -58,7 +59,7 @@ function GameCard({ g, selected, onClick }: { g: Game; selected: boolean; onClic
   );
 }
 
-function CallTile({ p, called, disabled, onClick }: { p: Player; called: boolean; disabled: boolean; onClick: () => void }) {
+function CallTile({ p, all, called, disabled, onClick }: { p: Player; all: Player[]; called: boolean; disabled: boolean; onClick: () => void }) {
   return (
     <button
       disabled={disabled}
@@ -81,7 +82,7 @@ function CallTile({ p, called, disabled, onClick }: { p: Player; called: boolean
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <b className="block truncate text-[15px] leading-tight">{p.name.split(' ')[0]}</b>
+        <b className="block truncate text-[15px] leading-tight">{shortSurname(p, all)}</b>
         <div className="mt-1 flex items-center gap-1.5">
           <span className="font-display text-[16px] font-bold leading-none text-brand-text">{p.number !== '' ? `#${p.number}` : '–'}</span>
           <RoleBadge role={p.role} className="h-5 min-w-[28px] text-[12px]" />
@@ -287,7 +288,7 @@ export function MatchSetupScreen() {
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {all.map((p) => (
-                <CallTile
+                <CallTile all={players ?? []}
                   key={p.id}
                   p={p}
                   called={setup.called.includes(p.id!)}
@@ -350,7 +351,7 @@ export function MatchSetupScreen() {
                   <Avatar player={p} size={64} />
                   <div className="mt-1.5 flex max-w-full items-baseline gap-1 px-1">
                     <span className="font-display text-[16px] font-bold text-brand-text">{p.number}</span>
-                    <b className="truncate text-[14px]">{p.name.split(' ')[0]}</b>
+                    <b className="truncate text-[14px]">{shortSurname(p, calledPlayers)}</b>
                   </div>
                   <span className="text-[11px] font-bold text-ink-muted">{p.role}</span>
                 </button>

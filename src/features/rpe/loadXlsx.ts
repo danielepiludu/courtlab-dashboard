@@ -2,6 +2,7 @@
  * Export Excel del carico (.xlsx), cinque fogli:
  *  Riepilogo · Giorno per giorno · Squadra · DB (stesso formato del foglio sRPE, reimportabile) · Partite
  */
+import { surnameFirst } from '@/db/types';
 import type { Sheet, SheetData, Cell } from 'write-excel-file/browser';
 import { acwrZone } from '@/engine/load';
 import { SESSION_TYPE_LABEL } from '@/db/types';
@@ -65,7 +66,7 @@ export function buildLoadSheets(r: LoadReport, colors: { bg: string; fg: string 
       ...(withGames ? ['Partite monitorate', 'Minuti giocati', 'INT medio', 'INT picco'] : []),
     ]),
     ...r.athletes.map((a): Cell[] => [
-      { value: a.player.name, fontWeight: 'bold' },
+      { value: surnameFirst(a.player.name), fontWeight: 'bold' },
       a.player.number || null,
       num(a.answered),
       num(a.answered + a.missing),
@@ -97,7 +98,7 @@ export function buildLoadSheets(r: LoadReport, colors: { bg: string; fg: string 
     H(['Atleta', 'Data', 'Tipo', 'TL', 'Media personale', 'Media squadra', 'Work Load', 'Zona']),
     ...r.athletes.flatMap((a) =>
       a.series.map((d): Cell[] => [
-        a.player.name,
+        surnameFirst(a.player.name),
         date(d.date),
         typeOf.has(d.date) ? SESSION_TYPE_LABEL[typeOf.get(d.date)!] : null,
         num(d.tl),
@@ -123,7 +124,7 @@ export function buildLoadSheets(r: LoadReport, colors: { bg: string; fg: string 
       .flatMap((s) =>
         r.athletes.map((a): Cell[] => {
           const row = a.rows.find((x) => x.date === s.date && x.type === s.type);
-          return [a.player.name.toUpperCase(), date(s.date), num(row?.rpe ?? null, '0.#'), num(row?.minutes ?? s.minutes), num(row?.tl ?? null), SESSION_TYPE_LABEL[s.type]];
+          return [surnameFirst(a.player.name).toUpperCase(), date(s.date), num(row?.rpe ?? null, '0.#'), num(row?.minutes ?? s.minutes), num(row?.tl ?? null), SESSION_TYPE_LABEL[s.type]];
         }),
       ),
   ];

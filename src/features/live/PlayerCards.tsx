@@ -1,6 +1,6 @@
 import { memo, type CSSProperties } from 'react';
 import { Clock3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
-import type { Player } from '@/db/types';
+import { shortSurname, type Player } from '@/db/types';
 import { fmtInt, intLevel } from '@/engine/int';
 import { Num } from '@/components/ui/Num';
 import { cx } from '@/lib/cx';
@@ -53,11 +53,9 @@ export function IntLegend({ className }: { className?: string }) {
   );
 }
 
-/** Nome breve: nome di battesimo, con iniziale del cognome se ci sono omonimi tra i convocati. */
+/** Nome breve: il cognome, con l'iniziale del nome se due convocati hanno lo stesso cognome. */
 export function shortName(p: Player, all: Player[]): string {
-  const [first, ...rest] = p.name.trim().split(/\s+/);
-  const dup = all.some((o) => o.id !== p.id && o.name.trim().split(/\s+/)[0] === first);
-  return dup && rest.length ? `${first} ${rest[rest.length - 1][0]}.` : first || p.name;
+  return shortSurname(p, all);
 }
 
 function Photo({ p, className, style }: { p: Player; className?: string; style?: CSSProperties }) {
