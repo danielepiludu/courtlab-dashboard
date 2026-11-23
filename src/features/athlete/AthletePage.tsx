@@ -6,6 +6,7 @@ import { RPE_SCALE } from '@/engine/load';
 import { intColor } from '@/lib/intColor';
 import { applyVars, themeVars } from '@/theme/apply';
 import { cx } from '@/lib/cx';
+import { APP } from '@/config';
 
 const rpeColor = (v: number) => intColor(v / 10);
 const fmtRpe = (v: number) => String(v).replace('.', ',');
@@ -274,7 +275,14 @@ function Avatar({ r, size, className }: { r: RosterItem; size: number; className
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto min-h-dvh max-w-lg bg-night text-ink">{children}</main>;
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col bg-night text-ink">
+      <div className="flex-1">{children}</div>
+      <footer className="px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-6 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-faint">
+        {APP.name} · {APP.credit}
+      </footer>
+    </main>
+  );
 }
 
 function Message({ icon, title, text, children }: { icon: React.ReactNode; title: string; text: string; children?: React.ReactNode }) {

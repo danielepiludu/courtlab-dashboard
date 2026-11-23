@@ -31,7 +31,7 @@ export default defineConfig({
         id: 'donbosco-basket-monitor', // invariato: mantiene l'identità dell'app già installata
         name: 'Courtlab',
         short_name: 'Courtlab',
-        description: 'Minuti giocati e carico di fatica (INT) dei giocatori, per più squadre',
+        description: 'Minuti giocati, fatica (INT) e carico di allenamento (RPE) per lo staff di basket · powered by Daniele Piludu',
         lang: 'it',
         dir: 'ltr',
         display: 'standalone',

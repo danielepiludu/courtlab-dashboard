@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { CloudError, signIn } from './client';
+import { APP, DEFAULT_TEAM } from '@/config';
+import { applyVars, themeVars } from '@/theme/apply';
 
 /**
  * Schermata di accesso: senza il login dello staff l'app non si carica.
@@ -11,6 +13,8 @@ export function LockScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // colori di Courtlab, non quelli dell'ultima squadra usata: l'app non è legata a una squadra
+  useEffect(() => applyVars(themeVars(DEFAULT_TEAM.primary, DEFAULT_TEAM.secondary)), []);
 
   const login = async () => {
     if (!email.trim() || !password) return;
@@ -56,6 +60,7 @@ export function LockScreen() {
         </button>
       </form>
       <p className="mt-6 text-center text-[13px] leading-relaxed text-ink-faint">Sei un atleta? Usa il link che ti ha mandato lo staff.</p>
+      <p className="mt-10 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-faint">{APP.credit}</p>
     </main>
   );
 }

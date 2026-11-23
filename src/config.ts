@@ -4,15 +4,17 @@
  */
 export const APP = {
   name: 'Courtlab',
-  version: '2.1.0',
+  version: '2.2.0',
+  author: 'Daniele Piludu',
+  credit: 'powered by Daniele Piludu',
 } as const;
 
-/** Squadra presente al primo avvio */
+/** Squadra presente al primo avvio (generica: nome, colori e logo si cambiano dalle impostazioni) */
 export const DEFAULT_TEAM = {
-  name: 'Pallacanestro Don Bosco Livorno',
+  name: 'La mia squadra',
   season: currentSeason(),
-  primary: '#002855',
-  secondary: '#ee3239',
+  primary: '#0b2547',
+  secondary: '#ff8a1f',
 } as const;
 
 export const GAME = {

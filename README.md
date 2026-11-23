@@ -1,5 +1,9 @@
 # Courtlab
 
+*powered by Daniele Piludu*
+
+App indipendente da qualsiasi società: nome, colori e logo che compaiono dentro l'app sono quelli della squadra scelta dallo staff. Schermata di avvio, accesso, pagina del link per gli atleti, PDF e anteprime portano il marchio Courtlab e il credito "powered by Daniele Piludu" (`APP.credit` in `src/config.ts`).
+
 PWA Android installabile e offline per allenatori di basket: gestisce **più squadre** (una per stagione) e monitora minuti giocati e carico di fatica (INT) dei giocatori durante la partita. Interfaccia in italiano.
 
 React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-plugin-pwa · Wake Lock API. Nessun backend: i dati restano sul dispositivo (con backup JSON esportabile).
@@ -7,7 +11,7 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 ## Multi-squadra e tema dinamico
 
 - Sempre **una squadra attiva** (salvata e ripristinata all'avvio): giocatori, calendario e resoconti sono separati per squadra.
-- Al primo avvio esiste già **Pallacanestro Don Bosco Livorno** (logo incluso, navy `#002855` + rosso `#EE3239`).
+- Al primo avvio esiste una squadra generica **La mia squadra** (colori Courtlab, senza logo) da rinominare e personalizzare. Il logo del Don Bosco (`public/logo.png`) resta incluso solo per le squadre che lo usano già (`builtin:donbosco`).
 - Header della Home → selettore squadre → **Gestisci squadre**: crea, modifica, archivia/riattiva, elimina (conferma forte), duplica per nuova stagione.
 - Le squadre archiviate restano consultabili in **sola lettura**.
 - I colori sono **variabili CSS** generate a runtime dai due colori della squadra (`src/theme/palette.ts`): sfondi sempre scuri, contrasto testo ≥ 4.5:1, correzione automatica dei colori troppo chiari o troppo simili. Le regole sono verificate da test automatici su centinaia di combinazioni.
@@ -165,13 +169,13 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 
 ```
 ├── assets/
-│   ├── logo-source.png              logo originale della squadra predefinita (non distribuito)
+│   ├── logo-source.png              logo originale del Don Bosco (non distribuito)
 │   └── app-icon.svg                 icona dell'app Courtlab (sorgente vettoriale)
 ├── public/
 │   ├── logo.png                     logo Don Bosco ritagliato, sfondo trasparente
 │   └── icons/                       icone PWA 192/512, maskable, apple-touch, favicon
 ├── supabase/schema.sql              tabelle, regole di accesso e funzioni di Courtlab Cloud
-├── scripts/make-icons.py            genera il logo della squadra predefinita
+├── scripts/make-icons.py            genera public/logo.png (logo Don Bosco per le squadre che lo usano)
 ├── scripts/make-app-icons.cjs       genera le icone dell'app dall'SVG
 ├── index.html                       applica subito il tema dell'ultima squadra (nessun lampo di colori)
 ├── vite.config.ts                   base path, PWA (manifest + service worker offline), test
