@@ -223,7 +223,7 @@ function FastAthlete({
               ? items.map((m) => (
                   <div key={m.id} className="border-t border-white/[.05] py-2 first:border-t-0">
                     <div className="mb-1.5 text-[14px] font-semibold">{m.label}</div>
-                    <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
+                    <div className="no-scrollbar flex gap-1.5 overflow-x-auto chip-row">
                       {QUALITY_SCALE.map((q) => {
                         const cur = String(mine?.values[m.id] ?? '');
                         const on = cur.toLowerCase().startsWith(q.toLowerCase());
@@ -275,7 +275,7 @@ function StationMode({ session, players, measures, prevOf }: { session: MeasureS
   const done = players.filter((p) => measures.get(p.id!)?.values[def.id] != null).length;
   return (
     <>
-      <div className="no-scrollbar -mx-5 mb-2 flex gap-1.5 overflow-x-auto px-5">
+      <div className="no-scrollbar -mx-5 mb-2 flex gap-1.5 overflow-x-auto px-5 chip-row">
         {numeric.map((m) => (
           <button
             key={m.id}

@@ -364,7 +364,7 @@ export function MeasuresView({
       />
       {view === 'compare' ? (
         <>
-          <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4">
+          <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 chip-row">
             {options.map((m) => (
               <button
                 key={m.id}

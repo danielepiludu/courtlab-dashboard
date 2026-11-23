@@ -105,7 +105,7 @@ export function PlayersScreen() {
         <>
         {all.length > 0 && (
           // un'unica riga di filtri: ruoli e, solo se servono, gli stati non disponibili
-          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 chip-row">
             <Chip active={!role && !status} onClick={() => (setRole(null), setStatus(null))}>
               Tutti
             </Chip>
