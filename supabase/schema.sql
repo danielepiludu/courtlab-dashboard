@@ -22,11 +22,14 @@ create table if not exists public.rpe_surveys (
 -- Risposte degli atleti (una per atleta e raccolta; reinviando si aggiorna)
 create table if not exists public.rpe_responses (
   token      text not null references public.rpe_surveys (token) on delete cascade,
-  player_id  int not null,
+  player_id  bigint not null,
   rpe        numeric(3, 1) not null check (rpe in (0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
   updated_at timestamptz not null default now(),
   primary key (token, player_id)
 );
+
+-- aggiornamento: id dei giocatori a 53 bit (validi su più dispositivi)
+alter table public.rpe_responses alter column player_id type bigint;
 
 alter table public.rpe_surveys enable row level security;
 alter table public.rpe_responses enable row level security;
@@ -72,7 +75,8 @@ as $$
 $$;
 
 -- Invio (o modifica) dell'RPE da parte dell'atleta
-create or replace function public.submit_rpe(p_token text, p_player int, p_rpe numeric)
+drop function if exists public.submit_rpe(text, int, numeric);
+create or replace function public.submit_rpe(p_token text, p_player bigint, p_rpe numeric)
 returns jsonb
 language plpgsql
 security definer
@@ -88,7 +92,7 @@ begin
   if not s.open then
     raise exception 'La raccolta è chiusa' using errcode = 'P0001';
   end if;
-  if not exists (select 1 from jsonb_array_elements(s.roster) r where (r ->> 'id')::int = p_player) then
+  if not exists (select 1 from jsonb_array_elements(s.roster) r where (r ->> 'id')::bigint = p_player) then
     raise exception 'Atleta non in elenco' using errcode = 'P0001';
   end if;
   if p_rpe is null or p_rpe not in (0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) then
@@ -102,9 +106,9 @@ end;
 $$;
 
 revoke all on function public.get_survey(text) from public;
-revoke all on function public.submit_rpe(text, int, numeric) from public;
+revoke all on function public.submit_rpe(text, bigint, numeric) from public;
 grant execute on function public.get_survey(text) to anon, authenticated;
-grant execute on function public.submit_rpe(text, int, numeric) to anon, authenticated;
+grant execute on function public.submit_rpe(text, bigint, numeric) to anon, authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Sincronizzazione tra i dispositivi dello staff

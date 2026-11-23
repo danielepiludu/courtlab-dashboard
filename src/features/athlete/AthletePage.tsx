@@ -78,7 +78,11 @@ export default function AthletePage({ token }: { token: string }) {
       vibrate(30);
       setSent(rpe);
     } catch (e) {
-      setError(e instanceof CloudError ? e.message : 'Invio non riuscito, riprova');
+      // messaggi previsti (in italiano); qualunque altro errore tecnico diventa un testo comprensibile
+      const known = ['Link non valido', 'La raccolta è chiusa', 'Atleta non in elenco', 'Valore RPE non valido', 'Sei offline', 'Nessuna connessione a internet'];
+      const msg = e instanceof CloudError ? e.message : '';
+      if (!known.includes(msg)) console.error('Invio RPE non riuscito:', e);
+      setError(known.includes(msg) ? msg : 'Invio non riuscito: riprova tra poco o avvisa lo staff.');
     } finally {
       setSending(false);
     }
