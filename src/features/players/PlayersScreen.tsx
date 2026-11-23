@@ -8,7 +8,7 @@ import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/misc';
 import { useActiveTeam, usePlayers } from '@/db/hooks';
 import { newPlayer } from '@/db/repo';
-import { ROLES, STATUSES, type Player, type PlayerStatus, type Role } from '@/db/types';
+import { ROLES, STATUSES, surnameFirst, type Player, type PlayerStatus, type Role } from '@/db/types';
 import { fmtDayMonth } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { PlayerFormSheet } from './PlayerFormSheet';
@@ -20,7 +20,7 @@ function PlayerRow({ p, onClick }: { p: Player; onClick: () => void }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="font-display text-xl font-bold leading-none text-brand-text">{p.number !== '' ? `#${p.number}` : '—'}</span>
-          <b className="truncate text-[17px]">{p.name}</b>
+          <b className="truncate text-[17px]">{surnameFirst(p.name)}</b>
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <RoleBadge role={p.role} />

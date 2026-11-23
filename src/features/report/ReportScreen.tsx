@@ -1,3 +1,4 @@
+import { surnameFirst } from '@/db/types';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -37,7 +38,7 @@ function Leader({ icon, label, p, value, photo }: { icon: React.ReactNode; label
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[10.5px] font-bold uppercase tracking-widest text-ink-muted">{label}</div>
-        <div className="truncate text-[14px] font-bold">{p ? `#${p.number} ${p.name}` : '—'}</div>
+        <div className="truncate text-[14px] font-bold">{p ? `#${p.number} ${surnameFirst(p.name)}` : '—'}</div>
       </div>
       <Num value={value} className="text-[26px]" />
     </div>
@@ -57,7 +58,7 @@ function PlayerRow({ p, photo, durationMs, marks, spans }: { p: PlayerSummary; p
           <span className="absolute -bottom-1 -right-1.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[13px] font-extrabold leading-none text-on-brand ring-2 ring-surface">{p.number || '–'}</span>
         </div>
         <div className="min-w-0">
-          <b className="block truncate text-[15px] leading-tight">{p.name}</b>
+          <b className="block truncate text-[15px] leading-tight">{surnameFirst(p.name)}</b>
           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] font-bold text-ink-muted">
             <span className="rounded bg-accent/15 px-1.5 text-accent-light">{p.role}</span>
             {p.starter && <span className="rounded bg-white/10 px-1.5">Titolare</span>}

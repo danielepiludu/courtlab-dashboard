@@ -1,3 +1,4 @@
+import { surnameFirst } from '@/db/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Trash } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
@@ -29,7 +30,7 @@ function RpePicker({ player, entry, session, onPick, onClose }: { player: Player
   }, [player, entry]);
   const mins = minutes.trim() === '' ? null : Math.max(0, Number(minutes));
   return (
-    <Sheet open={!!player} onClose={onClose} elevated title={player ? `#${player.number} ${player.name}` : ''} subtitle={session.type === 'partita' ? 'Quanto è stata faticosa la partita?' : "Quanto è stato faticoso l'allenamento?"}>
+    <Sheet open={!!player} onClose={onClose} elevated title={player ? `#${player.number} ${surnameFirst(player.name)}` : ''} subtitle={session.type === 'partita' ? 'Quanto è stata faticosa la partita?' : "Quanto è stato faticoso l'allenamento?"}>
       <div className="grid gap-1.5">
         {[...RPE_SCALE].reverse().map((s) => {
           const on = entry?.rpe === s.value;
@@ -167,7 +168,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
                     {p.photo ? <img src={p.photo} alt="" className="h-full w-full object-cover" /> : p.number || '–'}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold">{p.name}</span>
+                    <span className="block truncate text-[15px] font-semibold">{surnameFirst(p.name)}</span>
                     {e?.rpe != null && (
                       <span className="block truncate text-[12px] text-ink-muted">
                         {RPE_SCALE.find((x) => x.value === e.rpe)?.label ?? ''}

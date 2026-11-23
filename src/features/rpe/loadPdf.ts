@@ -3,6 +3,7 @@
  * Pagina 1: squadra (indicatori, grafico del TL medio, tabella atleti). Poi, a scelta, una pagina per atleta
  * con i due grafici del foglio sRPE (carico; Work Load con la fascia 0,8–1,3) e il dettaglio seduta per seduta.
  */
+import { surnameFirst } from '@/db/types';
 import type { jsPDF as JsPDF } from 'jspdf';
 import { contrast, darken, hexToRgb, normalizeHex } from '@/theme/color';
 import { LOAD_CONFIG, acwrZone } from '@/engine/load';
@@ -257,7 +258,7 @@ export async function buildLoadPdf(input: LoadPdfInput): Promise<JsPDF> {
   const withGames = r.liveGames > 0;
   type Col = { h: string; w: number; a?: 'left' | 'right' | 'center'; v: (a: AthleteLoad) => string; dot?: (a: AthleteLoad) => number | null };
   const cols: Col[] = [
-    { h: 'Atleta', w: withGames ? 40 : 52, a: 'left', v: (a) => `${a.player.number ? `${a.player.number}  ` : ''}${a.player.name}` },
+    { h: 'Atleta', w: withGames ? 40 : 52, a: 'left', v: (a) => `${a.player.number ? `${a.player.number}  ` : ''}${surnameFirst(a.player.name)}` },
     { h: 'Risposte', w: 15, v: (a) => `${a.answered}/${a.answered + a.missing}` },
     { h: 'RPE m.', w: 13, v: (a) => n1(a.rpeAvg) },
     { h: 'TL tot.', w: 15, v: (a) => n0(a.answered ? a.tlTotal : null) },
@@ -338,7 +339,7 @@ export async function buildLoadPdf(input: LoadPdfInput): Promise<JsPDF> {
       if (only && !only.has(a.player.id!)) continue;
       if (!a.answered && !a.matches.length) continue;
       doc.addPage();
-      header('CARICO INTERNO (sRPE) · ATLETA', `${a.player.number ? `#${a.player.number}  ` : ''}${a.player.name}`, 28);
+      header('CARICO INTERNO (sRPE) · ATLETA', `${a.player.number ? `#${a.player.number}  ` : ''}${surnameFirst(a.player.name)}`, 28);
       y = 35;
       const z = a.answered ? acwrZone(a.last?.acwr ?? null) : null;
       y = tiles(y, [

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import writeXlsxFile from 'write-excel-file/node';
 import readXlsxFile, { readSheetNames } from 'read-excel-file/node';
 import fixture from '@/engine/fixtures/srpe-2026-27.json';
-import type { Player, RpeEntry, TrainingSession } from '@/db/types';
+import { surnameFirst, type Player, type RpeEntry, type TrainingSession } from '@/db/types';
 import { buildLoadReport } from './loadReport';
 import { buildLoadSheets } from './loadXlsx';
 import { buildLoadPdf } from './loadPdf';
@@ -27,7 +27,8 @@ describe('export Excel', () => {
     const parsed = parseSrpeRows(rows as never).filter((r) => r.rpe != null);
     expect(parsed.length).toBe(entries.length);
     const key = (n: string, d: string) => `${n.toUpperCase()}|${d}`;
-    const want = new Map(fixture.rows.filter((r) => r.rpe != null).map((r) => [key(r.name, r.date), r]));
+    // nel file i giocatori sono scritti "COGNOME NOME"
+    const want = new Map(fixture.rows.filter((r) => r.rpe != null).map((r) => [key(surnameFirst(r.name), r.date), r]));
     for (const p of parsed) {
       const w = want.get(key(p.name, p.date))!;
       expect(p.rpe).toBe(w.rpe);
@@ -47,7 +48,7 @@ describe('PDF del carico', () => {
     const pages = doc.getNumberOfPages();
     expect(pages).toBeGreaterThanOrEqual(1 + players.length);
     const raw = doc.output();
-    for (const n of names) expect(raw).toContain(n);
+    for (const n of names) expect(raw).toContain(surnameFirst(n));
     expect(raw).toContain('REPORT CARICO INTERNO');
     expect(raw).toContain('Seduta per seduta');
   });
