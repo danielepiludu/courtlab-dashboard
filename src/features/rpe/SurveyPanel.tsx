@@ -6,9 +6,8 @@ import { CloudError, useCloud } from '@/cloud/client';
 import { cloudConfigured } from '@/cloud/config';
 import { publishSurvey, pullResponses, setSurveyOpen, surveyUrl } from '@/cloud/surveys';
 import { useActiveTeam } from '@/db/hooks';
-import { SESSION_TYPE_LABEL, shortSurname, type Player, type TrainingSession } from '@/db/types';
+import { shortSurname, type Player, type TrainingSession } from '@/db/types';
 import { db } from '@/db/db';
-import { fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { toast } from '@/store/feedback';
@@ -43,11 +42,8 @@ export function SurveyPanel({ session, players, missing = 0 }: { session: Traini
       await share(surveyUrl(t));
     });
 
-  const message = () => {
-    const day = fmtLong(session.date).replace(/ \d{4}$/, '').toLowerCase();
-    const what = session.type === 'partita' ? 'quanto è stata faticosa la partita' : "quanto è stato faticoso l'allenamento";
-    return `🏀 ${team?.name ?? 'Allenamento'}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}.\nTocca il link, scegli il tuo nome e indica ${what}:`;
-  };
+  // messaggi brevi: il link dice già tutto il resto
+  const message = () => '🏀 RPE, rispondi qui:';
 
   const share = async (link = url) => {
     if (navigator.share) {
@@ -91,9 +87,8 @@ export function SurveyPanel({ session, players, missing = 0 }: { session: Traini
         toast('Hanno già risposto tutti', 'success');
         return;
       }
-      const day = fmtLong(session.date).replace(/ \d{4}$/, '').toLowerCase();
       const names = left.map((p) => shortSurname(p, players)).join(', ');
-      const text = `🏀 ${team?.name ?? ''}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}: ${left.length === 1 ? 'manca ancora la risposta di' : `mancano ancora ${left.length} risposte:`} ${names}.\nTocca il link e rispondi, bastano 10 secondi:`;
+      const text = `⏰ RPE, ${left.length === 1 ? 'manca' : 'mancano'}: ${names}`;
       haptic.select();
       if (navigator.share) {
         try {
