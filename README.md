@@ -88,12 +88,23 @@ Sedute e RPE sono nelle tabelle `sessions` e `rpe` (schema Dexie v4) e sono incl
 
 ### Link RPE per gli atleti (Courtlab Cloud)
 
-Nella seduta, **Crea link per gli atleti** pubblica la raccolta e apre la condivisione (WhatsApp ecc.). L'atleta apre il link `…/#/rpe/<codice>` dal browser, senza installare nulla: sceglie il proprio nome (ricordato per le volte successive), tocca il valore RPE e invia; può modificarlo finché la raccolta è aperta. Le risposte arrivano nell'app ogni 30 secondi mentre la tab RPE è aperta (o con **Aggiorna**) e sono segnate "dall'atleta". Ciò che lo staff inserisce o corregge a mano ha sempre la precedenza. **Chiudi** blocca nuove risposte.
+Nella seduta, **Crea link per gli atleti** pubblica la raccolta e apre la condivisione (WhatsApp ecc.) con un messaggio pronto (squadra, data). Il link è `…/rpe/#<codice>` (pagina leggera dedicata, con anteprima nelle chat: titolo, descrizione e immagine `public/og-rpe.jpg`, rigenerabile con `node scripts/make-og.cjs`). L'atleta lo apre dal browser, senza installare nulla: sceglie il proprio nome (ricordato per le volte successive), tocca il valore RPE e invia; può modificarlo finché la raccolta è aperta. Le risposte arrivano nell'app ogni 30 secondi mentre la tab RPE è aperta (o con **Aggiorna**) e sono segnate "dall'atleta". Ciò che lo staff inserisce o corregge a mano ha sempre la precedenza. **Chiudi** blocca nuove risposte.
+
+### Sincronizzazione tra dispositivi (Courtlab Cloud)
+
+Accedendo con lo stesso utente su più telefoni/tablet, squadre, giocatori, partite, resoconti, sedute e RPE sono gli stessi ovunque. Restano locali solo la partita in corso e le preferenze del dispositivo.
+
+- **Offline-first**: l'app legge e scrive sempre sul dispositivo; la sincronizzazione parte all'accesso, pochi secondi dopo ogni modifica, ogni minuto, al ritorno online e quando l'app torna in primo piano.
+- Ogni ciclo invia ciò che è cambiato (confronto con l'impronta dell'ultima sincronizzazione) e scarica ciò che è cambiato altrove. **Vince la modifica più recente** (ora della modifica sul dispositivo).
+- Id validi su tutti i dispositivi: numeri casuali a 53 bit; gli RPE hanno un id derivato da seduta + atleta, così lo stesso RPE inserito su due telefoni resta uno solo. La migrazione v5 del database converte gli RPE esistenti senza toccare i dati.
+- **Primo accesso**: se il cloud è vuoto, questo dispositivo carica i suoi dati; se ci sono già dati, chiede conferma e sostituisce quelli locali con quelli del cloud.
+- **Protezione**: se su un dispositivo sparisce più di metà dei dati (es. "Elimina tutti i dati" o ripristino di un backup), prima di propagare le eliminazioni chiede se eliminarle ovunque o ripristinarle dal cloud.
+- Stato in Impostazioni → Courtlab Cloud (ultima sincronizzazione, offline, errori, "Sincronizza").
 
 Il servizio online è un progetto [Supabase](https://supabase.com) (piano gratuito). Configurazione, una volta sola:
 
 1. Crea un account su supabase.com e un nuovo progetto (regione consigliata: Frankfurt).
-2. **SQL Editor** → New query → incolla il contenuto di [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
+2. **SQL Editor** → New query → incolla il contenuto di [`supabase/schema.sql`](supabase/schema.sql) → **Run**. Dopo ogni aggiornamento dello schema va rieseguito (è sicuro rieseguirlo: crea solo ciò che manca).
 3. **Authentication → Users → Add user**: crea l'utente dello staff (email + password, "Auto confirm"). In **Authentication → Sign In / Providers** disattiva "Allow new users to sign up", così nessun altro può registrarsi.
 4. **Project Settings → API keys**: copia l'URL del progetto e la chiave **publishable** (o "anon public"). Vanno in `src/cloud/config.ts` (oppure come variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` in build). La chiave segreta / service_role non va mai nell'app.
 5. Nell'app: Impostazioni → **Courtlab Cloud** → accedi con l'utente dello staff.
@@ -170,7 +181,8 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │   │   ├── extract.ts               colori dominanti dal logo
 │   │   ├── apply.ts                 variabili CSS, logo, istantanea per l'avvio
 │   │   └── ThemeController.tsx      applica il tema della squadra attiva
-│   ├── cloud/                       Courtlab Cloud: client Supabase, accesso staff, raccolte RPE, sincronizzazione
+│   ├── cloud/                       Courtlab Cloud: client Supabase, accesso staff, raccolte RPE,
+│   │                                sincronizzazione tra dispositivi (sync.ts, impronte + test)
 │   ├── db/
 │   │   ├── types.ts                 Team, Player, Game, GameReport, TrainingSession, RpeEntry
 │   │   ├── db.ts                    schema Dexie v4 (migrazioni dalle versioni precedenti)
@@ -191,7 +203,7 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │       │                            card campo/panchina, debug INT
 │       ├── report/                  riepilogo (+ test), schermata resoconto, grafico INT, PDF (+ test)
 │       ├── reports/                 tab Resoconti
-│       ├── athlete/                 pagina pubblica del link RPE per gli atleti
+│       ├── athlete/                 pagina pubblica del link RPE per gli atleti (entry: rpe/index.html)
 │       └── rpe/                     tab RPE: sedute, scala CR-10, analisi carico, grafico, import Excel (+ test)
 └── .github/workflows/deploy.yml     test + build + GitHub Pages
 ```
@@ -206,6 +218,6 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 Carico interno (RPE):
 
 - [x] **Fase 1** — sedute, inserimento RPE, calcoli del foglio sRPE, grafico, import da Excel
-- [ ] **Fase 2** — sincronizzazione tra dispositivi dello staff con account
+- [x] **Fase 2** — sincronizzazione tra dispositivi dello staff con account (offline-first, vince la modifica più recente)
 - [x] **Fase 3** — link per gli atleti per inserire l'RPE senza installare nulla (da attivare con il progetto Supabase)
 - [ ] **Fase 4** — report ed export del carico (PDF/Excel), integrazione minuti e INT

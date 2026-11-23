@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cloud, CloudOff, LogOut } from 'lucide-react';
+import { Cloud, CloudOff, LogOut, RefreshCw } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/misc';
@@ -7,6 +7,20 @@ import { haptic } from '@/lib/haptics';
 import { toast } from '@/store/feedback';
 import { CloudError, signIn, signOut, useCloud } from './client';
 import { cloudConfigured } from './config';
+import { retrySync, useSync } from './sync';
+import { cx } from '@/lib/cx';
+
+const hhmm = (t: number) => new Date(t).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+/** Stato della sincronizzazione, in parole. */
+export function useSyncLabel(): { text: string; tone: 'ok' | 'warn' | 'error' | 'muted' } {
+  const { phase, lastSync, error } = useSync();
+  if (phase === 'syncing') return { text: 'Sincronizzazione in corso…', tone: 'muted' };
+  if (phase === 'offline') return { text: 'Offline: le modifiche partono appena torna la connessione', tone: 'warn' };
+  if (phase === 'error') return { text: error ?? 'Errore di sincronizzazione', tone: 'error' };
+  if (lastSync) return { text: `Sincronizzato alle ${hhmm(lastSync)}`, tone: 'ok' };
+  return { text: 'In attesa di sincronizzare', tone: 'muted' };
+}
 
 /** Accesso dello staff a Courtlab Cloud (serve per i link RPE degli atleti). */
 export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -32,7 +46,7 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   return (
-    <Sheet open={open} onClose={onClose} elevated title="Courtlab Cloud" subtitle="Link RPE per gli atleti">
+    <Sheet open={open} onClose={onClose} elevated title="Courtlab Cloud" subtitle="Dati su tutti i dispositivi e link RPE per gli atleti">
       {!cloudConfigured() ? (
         <div className="flex gap-3 rounded-2xl border border-line bg-night/40 p-4 text-[14px] leading-relaxed text-ink-muted">
           <CloudOff size={22} className="mt-0.5 shrink-0 text-warn" />
@@ -49,8 +63,10 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
               <span className="block truncate text-[13px] text-ink-muted">{session.user.email}</span>
             </div>
           </div>
+          <SyncStatus />
           <p className="mb-4 text-[13px] leading-relaxed text-ink-muted">
-            Apri una seduta nella tab RPE e tocca <b className="text-ink">Crea link per gli atleti</b>. Le risposte arrivano da sole mentre la tab RPE è aperta.
+            Squadre, giocatori, partite, resoconti, sedute e RPE sono gli stessi su ogni dispositivo in cui accedi con questo utente. L'app funziona anche senza rete: le modifiche
+            partono appena torna la connessione e, se lo stesso dato cambia su due dispositivi, vale la modifica più recente.
           </p>
           <Button
             variant="danger"
@@ -72,7 +88,10 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
             void login();
           }}
         >
-          <p className="mb-4 text-[14px] leading-relaxed text-ink-muted">Accedi con l'utente dello staff creato nel progetto Supabase. L'accesso resta salvato su questo dispositivo.</p>
+          <p className="mb-4 text-[14px] leading-relaxed text-ink-muted">
+            Accedi con l'utente dello staff creato nel progetto Supabase: i dati vengono sincronizzati con gli altri dispositivi e puoi mandare agli atleti il link RPE. L'accesso resta
+            salvato su questo dispositivo.
+          </p>
           <Field label="Email">
             <input className="input" type="email" autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
@@ -85,5 +104,19 @@ export function CloudSheet({ open, onClose }: { open: boolean; onClose: () => vo
         </form>
       )}
     </Sheet>
+  );
+}
+
+function SyncStatus() {
+  const { text, tone } = useSyncLabel();
+  const syncing = useSync((x) => x.phase === 'syncing');
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-night/40 p-3">
+      <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', tone === 'ok' ? 'bg-ok' : tone === 'warn' ? 'bg-warn' : tone === 'error' ? 'bg-danger' : 'bg-ink-faint', syncing && 'animate-pulse')} />
+      <span className={cx('min-w-0 flex-1 text-[14px]', tone === 'error' ? 'text-danger' : 'text-ink')}>{text}</span>
+      <Button size="sm" disabled={syncing} icon={<RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />} onClick={retrySync}>
+        Sincronizza
+      </Button>
+    </div>
   );
 }

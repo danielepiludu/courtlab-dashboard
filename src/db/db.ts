@@ -1,6 +1,7 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
 import { BUILTIN_LOGO, type Game, type GameReport, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
 import { DEFAULT_TEAM } from '@/config';
+import { newId, notifyLocalChange, rpeId } from './ids';
 
 /** Record generico chiave/valore (stato partita in corso, resoconti, impostazioni) */
 export interface KV {
@@ -13,6 +14,10 @@ export function defaultTeam(): Team {
   const t = Date.now();
   return { ...DEFAULT_TEAM, logo: BUILTIN_LOGO, archived: false, createdAt: t, updatedAt: t };
 }
+
+/** Tabelle sincronizzate tra i dispositivi (kv resta locale). */
+export const SYNC_KINDS = ['teams', 'players', 'games', 'reports', 'sessions', 'rpe'] as const;
+export type SyncKind = (typeof SYNC_KINDS)[number];
 
 export class AppDB extends Dexie {
   teams!: Table<Team, number>;
@@ -76,6 +81,44 @@ export class AppDB extends Dexie {
       sessions: '++id, teamId, date',
       rpe: '++id, teamId, sessionId, playerId, &[sessionId+playerId]',
     });
+    // v5: id validi su più dispositivi; gli RPE prendono l'id derivato da seduta + atleta
+    this.version(5)
+      .stores({
+        teams: '++id, createdAt',
+        players: '++id, teamId, name, number, role, status',
+        games: '++id, teamId, date, status',
+        kv: 'key',
+        reports: 'gameId, teamId',
+        sessions: '++id, teamId, date',
+        rpe: '++id, teamId, sessionId, playerId, &[sessionId+playerId]',
+      })
+      .upgrade(async (tx: Transaction) => {
+        const t = tx.table('rpe');
+        const all = (await t.toArray()) as RpeEntry[];
+        await t.clear();
+        await t.bulkAdd(all.map((r) => ({ ...r, id: rpeId(r.sessionId, r.playerId) })));
+      });
+
+    // Id per i nuovi elementi e segnalazione delle modifiche (per la sincronizzazione)
+    for (const kind of SYNC_KINDS) {
+      const table = this.table(kind);
+      const keyOf = (pk: unknown, obj?: Record<string, unknown>) => Number(pk ?? (kind === 'reports' ? obj?.gameId : obj?.id));
+      table.hook('creating', function (pk, obj: Record<string, unknown>) {
+        let key = pk;
+        if (pk == null && kind !== 'reports') {
+          key = kind === 'rpe' ? rpeId(obj.sessionId as number, obj.playerId as number) : newId();
+        }
+        notifyLocalChange(kind, keyOf(key, obj), false);
+        return pk == null && kind !== 'reports' ? key : undefined;
+      });
+      table.hook('updating', function (_mods, pk) {
+        notifyLocalChange(kind, keyOf(pk), false);
+      });
+      table.hook('deleting', function (pk) {
+        notifyLocalChange(kind, keyOf(pk), true);
+      });
+    }
+
     // Primo avvio: crea la squadra predefinita
     this.on('populate', (tx) => {
       void tx.table('teams').add(defaultTeam());

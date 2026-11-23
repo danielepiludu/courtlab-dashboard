@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Cloud, Database, Download, Settings2, Sparkles, Trash, Upload } from 'lucide-react';
 import { CloudSheet } from '@/cloud/CloudSheet';
 import { useCloud } from '@/cloud/client';
+import { useSyncLabel } from '@/cloud/CloudSheet';
 import { Sheet } from './ui/Sheet';
 import { exportBackup, importBackup, loadDemoTeam, wipeAll } from '@/db/repo';
 import { useActiveTeam } from '@/db/hooks';
@@ -29,6 +30,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [busy, setBusy] = useState(false);
   const [cloud, setCloud] = useState(false);
   const cloudUser = useCloud((x) => x.session?.user.email);
+  const syncLabel = useSyncLabel();
   const team = useActiveTeam();
   const activeTeamId = useUI((s) => s.activeTeamId);
   const setActiveTeam = useUI((s) => s.setActiveTeam);
@@ -68,7 +70,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Impostazioni" subtitle="Dati salvati solo su questo dispositivo">
+    <Sheet open={open} onClose={onClose} title="Impostazioni" subtitle={cloudUser ? 'Dati sincronizzati con Courtlab Cloud' : 'Dati salvati solo su questo dispositivo'}>
       <div className="mb-5 flex items-center gap-4 rounded-2xl bg-bar p-4">
         <img src={`${import.meta.env.BASE_URL}icons/app-logo.png`} alt={APP.name} width={56} height={56} className="h-14 w-14 shrink-0" draggable={false} />
         <div className="min-w-0">
@@ -80,7 +82,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       </div>
       <div className="space-y-2.5">
         <Row icon={<Settings2 size={20} />} title="Gestisci squadre" text="Crea, modifica, archivia o duplica per nuova stagione" onClick={() => (onClose(), setTeamsOpen(true))} />
-        <Row icon={<Cloud size={20} />} title="Courtlab Cloud" text={cloudUser ? `Collegato come ${cloudUser}` : 'Accedi per mandare agli atleti il link RPE'} onClick={() => setCloud(true)} />
+        <Row icon={<Cloud size={20} />} title="Courtlab Cloud" text={cloudUser ? `${cloudUser} · ${syncLabel.text}` : 'Accedi per avere i dati su più dispositivi e il link RPE per gli atleti'} onClick={() => setCloud(true)} />
         <Row icon={<Download size={20} />} title="Esporta backup" text="Tutte le squadre, giocatori, partite, resoconti e immagini in un file .json" onClick={doExport} />
         <Row icon={<Upload size={20} />} title="Importa backup" text="Ripristina da un file .json (es. dopo il cambio di telefono)" onClick={() => fileRef.current?.click()} />
         <Row
@@ -106,7 +108,9 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           onClick={async () => {
             const ok = await confirmDialog({
               title: 'Eliminare tutti i dati?',
-              message: 'Operazione irreversibile. Consigliato esportare prima un backup.',
+              message: cloudUser
+                ? 'Operazione irreversibile. Consigliato esportare prima un backup. Dopo ti verrà chiesto se eliminare i dati anche dal cloud e dagli altri dispositivi.'
+                : 'Operazione irreversibile. Consigliato esportare prima un backup.',
               confirmLabel: 'Elimina tutto',
               danger: true,
               requireText: 'ELIMINA',
@@ -123,7 +127,9 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       </div>
       <p className="mt-5 flex items-start gap-2 text-[13px] leading-relaxed text-ink-muted">
         <Database size={16} className="mt-0.5 shrink-0" />
-        L'app funziona offline: i dati restano nel browser di questo dispositivo. Esporta un backup periodicamente e prima di cambiare telefono.
+        {cloudUser
+          ? "L'app funziona offline: i dati sono salvati su questo dispositivo e sincronizzati con Courtlab Cloud appena c'è connessione."
+          : "L'app funziona offline: i dati restano nel browser di questo dispositivo. Esporta un backup periodicamente e prima di cambiare telefono, oppure attiva Courtlab Cloud."}
       </p>
       <CloudSheet open={cloud} onClose={() => setCloud(false)} />
       <input

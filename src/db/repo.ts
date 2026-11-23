@@ -1,5 +1,8 @@
 import Dexie from 'dexie';
 import { db, defaultTeam, type KV } from './db';
+
+/** Stato della sincronizzazione (resta anche dopo "Elimina tutti i dati" o un ripristino da backup). */
+export const SYNC_STATE_KEY = 'sync:state';
 import type { Game, GameReport, Player, PlayerStatus, RpeEntry, Role, Team, TrainingSession } from './types';
 import { todayISO, toISODate } from '@/lib/dates';
 import { currentSeason, nextSeason } from '@/config';
@@ -126,7 +129,7 @@ export async function exportBackup(activeTeamId: number | null): Promise<Blob> {
     teams: await db.teams.toArray(),
     players: await db.players.toArray(),
     games: await db.games.toArray(),
-    kv: await db.kv.toArray(),
+    kv: (await db.kv.toArray()).filter((k) => k.key !== SYNC_STATE_KEY),
     reports: await db.reports.toArray(),
     sessions: await db.sessions.toArray(),
     rpe: await db.rpe.toArray(),
@@ -149,7 +152,7 @@ export async function importBackup(file: File): Promise<{ teams: number; players
     games = games.map((g) => ({ ...g, teamId: 1 }));
   }
   await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports, db.sessions, db.rpe], async () => {
-    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
+    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.where('key').notEqual(SYNC_STATE_KEY).delete(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
     await db.teams.bulkPut(teams);
     if (Array.isArray(data.sessions)) await db.sessions.bulkPut(data.sessions);
     if (Array.isArray(data.rpe)) await db.rpe.bulkPut(data.rpe);
@@ -167,7 +170,7 @@ export async function importBackup(file: File): Promise<{ teams: number; players
         });
         await db.reports.put({ gameId: live.gameId, teamId: live.teamId, finishedAt: live.finishedAt ?? k.updatedAt, players: snap, live });
       }
-      await db.kv.bulkPut(data.kv.filter((k) => k.key !== 'legacyImportDone' && !k.key.startsWith('report:')));
+      await db.kv.bulkPut(data.kv.filter((k) => k.key !== 'legacyImportDone' && k.key !== SYNC_STATE_KEY && !k.key.startsWith('report:')));
     }
     await db.kv.put({ key: 'legacyImportDone', value: true, updatedAt: now() });
   });
@@ -178,7 +181,7 @@ export async function importBackup(file: File): Promise<{ teams: number; players
 /** Elimina tutto e ricrea la squadra predefinita. */
 export async function wipeAll(): Promise<number> {
   await db.transaction('rw', [db.teams, db.players, db.games, db.kv, db.reports, db.sessions, db.rpe], async () => {
-    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.clear(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
+    await Promise.all([db.teams.clear(), db.players.clear(), db.games.clear(), db.kv.where('key').notEqual(SYNC_STATE_KEY).delete(), db.reports.clear(), db.sessions.clear(), db.rpe.clear()]);
     await db.kv.put({ key: 'legacyImportDone', value: true, updatedAt: now() });
   });
   return (await db.teams.add(defaultTeam())) as number;

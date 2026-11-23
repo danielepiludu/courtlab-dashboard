@@ -17,6 +17,7 @@ import { useUI } from '@/store/ui';
 import { useLive } from '@/store/live';
 import { toast } from '@/store/feedback';
 import { SPLASH_MIN_MS } from '@/config';
+import { initSync } from '@/cloud/sync';
 
 /** Avvio: apre il database, importa eventuali dati legacy e ripristina la squadra attiva. */
 function useBoot() {
@@ -39,6 +40,8 @@ function useBoot() {
         toast('Errore di accesso ai dati locali', 'error', 5000);
       }
       void requestPersistentStorage();
+      // sincronizzazione tra dispositivi (se l'utente ha fatto l'accesso a Courtlab Cloud)
+      initSync();
       setTimeout(() => setReady(true), Math.max(0, SPLASH_MIN_MS - (Date.now() - t0)));
     })();
   }, []);
