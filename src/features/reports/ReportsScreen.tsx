@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BarChart3, ChevronRight, ClipboardList, MapPin, Plane } from 'lucide-react';
+import { BarChart3, ChevronRight, ClipboardList, MapPin, Plane, Trash } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { EmptyState } from '@/components/ui/misc';
 import { Num } from '@/components/ui/Num';
@@ -11,6 +11,7 @@ import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { useUI } from '@/store/ui';
 import { OutcomePill } from '../home/GameRow';
+import { askDeleteGame } from '../report/deleteGame';
 
 function ReportRow({ g, hasData, onClick }: { g: Game; hasData: boolean; onClick: () => void }) {
   const o = outcomeOf(g);
@@ -50,6 +51,7 @@ function ReportRow({ g, hasData, onClick }: { g: Game; hasData: boolean; onClick
 export function ReportsScreen() {
   const games = useGames();
   const team = useActiveTeam();
+  const readOnly = !!team?.archived;
   const openReport = useUI((s) => s.openReport);
   const finished = (games ?? []).filter((g) => g.status === 'finished').reverse();
   const withData = useLiveQuery(async () => new Set((await db.reports.where('teamId').equals(team?.id ?? -1).primaryKeys()) as number[]), [team?.id]) ?? new Set<number>();
@@ -80,15 +82,27 @@ export function ReportsScreen() {
             </div>
             <div className="stagger space-y-2">
               {finished.map((g) => (
-                <ReportRow
-                  key={g.id}
-                  g={g}
-                  hasData={withData.has(g.id!)}
-                  onClick={() => {
-                    haptic.tap();
-                    openReport(g.id!);
-                  }}
-                />
+                <div key={g.id} className="flex items-stretch gap-2">
+                  <div className="min-w-0 flex-1">
+                    <ReportRow
+                      g={g}
+                      hasData={withData.has(g.id!)}
+                      onClick={() => {
+                        haptic.tap();
+                        openReport(g.id!);
+                      }}
+                    />
+                  </div>
+                  {!readOnly && (
+                    <button
+                      onClick={() => void askDeleteGame(g)}
+                      aria-label={`Elimina la partita contro ${g.opponent}`}
+                      className="grid w-12 shrink-0 place-items-center rounded-2xl border border-line bg-surface text-ink-faint transition active:scale-95 hover:text-danger"
+                    >
+                      <Trash size={19} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </>

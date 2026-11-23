@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Clock3, FileDown, MapPin, Plane, Repeat, Share2, Timer, TrendingUp, X } from 'lucide-react';
+import { Clock3, FileDown, MapPin, Plane, Repeat, Share2, Timer, Trash, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Chip';
 import { Num } from '@/components/ui/Num';
@@ -18,7 +18,8 @@ import { useUI } from '@/store/ui';
 import { teamLogoSrc } from '@/theme/apply';
 import { mmss } from '@/features/live/liveModel';
 import { IntBar, intColor } from '@/features/live/PlayerCards';
-import { IntSparkline } from './IntSparkline';
+import { IntSparkline, type PeriodSpan } from './IntSparkline';
+import { askDeleteGame } from './deleteGame';
 import { summarize, type PlayerSummary } from './reportModel';
 import { exportReportPdf, logoForPdf } from './pdf';
 
@@ -43,7 +44,7 @@ function Leader({ icon, label, p, value, photo }: { icon: React.ReactNode; label
   );
 }
 
-function PlayerRow({ p, photo, durationMs, marks }: { p: PlayerSummary; photo?: string; durationMs: number; marks: { t: number; label: string }[] }) {
+function PlayerRow({ p, photo, durationMs, marks, spans }: { p: PlayerSummary; photo?: string; durationMs: number; marks: { t: number; label: string }[]; spans: PeriodSpan[] }) {
   const peakC = intColor(p.intPeak);
   const avgC = intColor(p.intAvg);
   return (
@@ -82,7 +83,7 @@ function PlayerRow({ p, photo, durationMs, marks }: { p: PlayerSummary; photo?: 
           <Num value={fmtInt(p.intPeak)} className="text-[20px]" style={{ color: peakC, textShadow: p.intPeak > 0.6 ? `0 0 10px ${peakC}` : undefined }} />
         </div>
       </div>
-      <IntSparkline series={p.series} durationMs={durationMs} marks={marks} height={46} className="block" />
+      <IntSparkline series={p.series} durationMs={durationMs} marks={marks} spans={spans} height={46} className="block" />
     </div>
   );
 }
@@ -148,6 +149,16 @@ export function ReportScreen() {
             <h1 className="truncate font-display text-[24px] font-bold leading-none tracking-wide">Resoconto</h1>
             {game && <div className="mt-1 truncate text-[13px] text-ink-muted">{fmtLong(game.date)}</div>}
           </div>
+          {game && !team?.archived && (
+            <Button
+              size="icon"
+              aria-label="Elimina partita"
+              onClick={async () => {
+                if (await askDeleteGame(game)) close();
+              }}
+              icon={<Trash size={19} />}
+            />
+          )}
           {canShare && (
             <Button size="icon" aria-label="Condividi PDF" disabled={!summary || busy} onClick={() => doExport('share')} icon={<Share2 size={20} />} />
           )}
@@ -232,7 +243,7 @@ export function ReportScreen() {
                   </div>
                   <div className="stagger space-y-2">
                     {players.map((p) => (
-                      <PlayerRow key={p.id} p={p} photo={data?.photos[p.id]} durationMs={summary.durationMs} marks={summary.periodMarks} />
+                      <PlayerRow key={p.id} p={p} photo={data?.photos[p.id]} durationMs={summary.durationMs} marks={summary.periodMarks} spans={summary.periodSpans} />
                     ))}
                   </div>
 
