@@ -24,8 +24,8 @@ export interface RosterItem {
 
 export const LOGO_BUILTIN = 'builtin';
 
-/** Codice casuale non indovinabile (62^14 combinazioni). */
-export function newToken(len = 14): string {
+/** Codice casuale non indovinabile (62^10 ≈ 8·10^17 combinazioni). */
+export function newToken(len = 10): string {
   const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = crypto.getRandomValues(new Uint8Array(len * 2));
   let out = '';
@@ -38,7 +38,7 @@ export function newToken(len = 14): string {
 
 /** Link da mandare agli atleti. */
 export function surveyUrl(token: string): string {
-  return `${location.origin}${import.meta.env.BASE_URL}#/rpe/${token}`;
+  return `${location.origin}${import.meta.env.BASE_URL}rpe/#${token}`;
 }
 
 async function smallLogo(team: Team): Promise<string | null> {

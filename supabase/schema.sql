@@ -105,3 +105,52 @@ revoke all on function public.get_survey(text) from public;
 revoke all on function public.submit_rpe(text, int, numeric) from public;
 grant execute on function public.get_survey(text) to anon, authenticated;
 grant execute on function public.submit_rpe(text, int, numeric) to anon, authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Sincronizzazione tra i dispositivi dello staff
+-- Ogni elemento (squadra, giocatore, partita, resoconto, seduta, RPE) è una riga.
+-- Vince la modifica più recente (updated_at = ora della modifica sul dispositivo, in ms).
+-- ─────────────────────────────────────────────────────────────────────────────
+create table if not exists public.sync_records (
+  owner      uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  kind       text not null check (kind in ('teams', 'players', 'games', 'reports', 'sessions', 'rpe')),
+  id         text not null check (length(id) between 1 and 40),
+  data       jsonb,
+  deleted    boolean not null default false,
+  updated_at bigint not null,
+  server_at  timestamptz not null default clock_timestamp(),
+  primary key (owner, kind, id)
+);
+create index if not exists sync_records_pull on public.sync_records (owner, server_at);
+
+alter table public.sync_records enable row level security;
+drop policy if exists "ognuno vede e modifica solo i propri dati" on public.sync_records;
+create policy "ognuno vede e modifica solo i propri dati" on public.sync_records
+  for all to authenticated using (owner = auth.uid()) with check (owner = auth.uid());
+revoke all on public.sync_records from anon;
+grant select, insert, update, delete on public.sync_records to authenticated;
+
+-- Invio di un gruppo di modifiche: aggiorna solo se la modifica è più recente di quella salvata.
+-- Restituisce quante righe sono state accettate.
+create or replace function public.sync_push(p_rows jsonb)
+returns integer
+language sql
+security invoker
+set search_path = public
+as $$
+  with input as (
+    select * from jsonb_to_recordset(p_rows) as x(kind text, id text, data jsonb, deleted boolean, updated_at bigint)
+  ), up as (
+    insert into public.sync_records as r (owner, kind, id, data, deleted, updated_at, server_at)
+    select auth.uid(), kind, id, case when coalesce(deleted, false) then null else data end, coalesce(deleted, false), updated_at, clock_timestamp()
+    from input
+    on conflict (owner, kind, id) do update
+      set data = excluded.data, deleted = excluded.deleted, updated_at = excluded.updated_at, server_at = clock_timestamp()
+      where r.updated_at <= excluded.updated_at
+    returning 1
+  )
+  select count(*)::int from up;
+$$;
+
+revoke all on function public.sync_push(jsonb) from public;
+grant execute on function public.sync_push(jsonb) to authenticated;
