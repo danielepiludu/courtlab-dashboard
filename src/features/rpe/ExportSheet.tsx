@@ -13,6 +13,7 @@ import { toast } from '@/store/feedback';
 import { teamLogoSrc } from '@/theme/apply';
 import { contrast, normalizeHex } from '@/theme/color';
 import { buildLoadReport, presetRange } from './loadReport';
+import { deliverFile } from '@/lib/deliver';
 
 type Preset = 'week' | 'month' | 'season' | 'custom';
 const PRESETS: { id: Preset; label: string }[] = [
@@ -21,27 +22,6 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: 'season', label: 'Tutta la stagione' },
   { id: 'custom', label: 'Personalizzato' },
 ];
-
-/** Salva il file oppure lo condivide (WhatsApp, Drive, email…) se il dispositivo lo permette. */
-async function deliver(blob: Blob, name: string, mode: 'download' | 'share'): Promise<'shared' | 'downloaded'> {
-  if (mode === 'share') {
-    const file = new File([blob], name, { type: blob.type });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: name });
-        return 'shared';
-      } catch (e) {
-        if ((e as DOMException)?.name === 'AbortError') return 'shared';
-      }
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
-  return 'downloaded';
-}
 
 /** Report del carico: periodo, PDF (squadra + pagine atleta) ed Excel. */
 export function ExportSheet({
@@ -99,7 +79,7 @@ export function ExportSheet({
         blob = await buildLoadXlsx(report, { bg, fg: contrast('#ffffff', bg) >= contrast('#111111', bg) ? '#FFFFFF' : '#111111' });
         name = loadXlsxFileName(report);
       }
-      const r = await deliver(blob, name, mode);
+      const r = await deliverFile(blob, name, mode);
       haptic.confirm();
       toast(r === 'shared' ? 'File pronto da condividere' : `${kind === 'pdf' ? 'PDF' : 'Excel'} salvato nei download`, 'success');
     } catch (e) {

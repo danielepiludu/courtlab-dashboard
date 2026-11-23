@@ -1,14 +1,17 @@
 import { surnameFirst } from '@/db/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Trash } from 'lucide-react';
+import { Check, FileDown, Trash } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/misc';
 import { Segmented } from '@/components/ui/Chip';
 import type { Player, RpeEntry, TrainingSession } from '@/db/types';
 import { SESSION_TYPES, SESSION_TYPE_LABEL } from '@/db/types';
-import { deleteSession, saveSession, setRpe } from '@/db/rpeRepo';
-import { RPE_SCALE, entryTL } from '@/engine/load';
+import { deleteSession, saveSession, setRpe, toLoadEntries } from '@/db/rpeRepo';
+import { db } from '@/db/db';
+import { deliverFile } from '@/lib/deliver';
+import { teamLogoSrc } from '@/theme/apply';
+import { LOAD_CONFIG, RPE_SCALE, athleteSeries, entryTL } from '@/engine/load';
 import { intColor } from '@/lib/intColor';
 import { fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
@@ -69,6 +72,7 @@ function RpePicker({ player, entry, session, onPick, onClose }: { player: Player
 export function SessionSheet({ session, players, entries, readOnly, onClose }: { session: TrainingSession | null; players: Player[]; entries: RpeEntry[]; readOnly: boolean; onClose: () => void }) {
   const [draft, setDraft] = useState<TrainingSession | null>(session);
   const [picking, setPicking] = useState<Player | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const team = useActiveTeam();
   const logged = useCloud((x) => !!x.session);
   const dirty = useRef(false);
@@ -97,6 +101,35 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
     onClose();
   };
 
+  // PDF della seduta: condiviso (WhatsApp, Drive…) o scaricato
+  const sharePdf = async () => {
+    if (!team) return;
+    setPdfBusy(true);
+    try {
+      const [{ buildSessionPdf, sessionPdfFileName }, { logoForPdf }] = await Promise.all([import('./sessionPdf'), import('@/features/report/pdf')]);
+      // Work Load del giorno, con le stesse formule dell'analisi
+      const all = (await db.sessions.where('teamId').equals(s.teamId).toArray()).sort((a, b) => a.date.localeCompare(b.date));
+      const rpe = await db.rpe.where('teamId').equals(s.teamId).toArray();
+      const load = toLoadEntries(all, rpe, players);
+      let win = LOAD_CONFIG.windowDays;
+      try {
+        win = Math.min(28, Math.max(2, Number(localStorage.getItem('bm-rpe-window')) || win));
+      } catch {
+        /* predefinita */
+      }
+      const workLoad = new Map(players.map((p) => [p.id!, athleteSeries(load, p.id!, win).find((d) => d.date === s.date)?.acwr ?? null]));
+      const doc = await buildSessionPdf({ session: s, team, players, entries: rpe.filter((e) => e.sessionId === s.id), workLoad, logo: await logoForPdf(teamLogoSrc(team)) });
+      const r = await deliverFile(doc.output('blob'), sessionPdfFileName(s), 'share');
+      haptic.confirm();
+      if (r === 'downloaded') toast('PDF salvato nei download', 'success');
+    } catch (e) {
+      console.error(e);
+      toast('PDF non riuscito', 'error');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   const pick = async (rpe: number | null, minutes: number | null) => {
     if (!picking) return;
     await setRpe(s, picking.id!, rpe, minutes);
@@ -117,8 +150,8 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
         title={`${SESSION_TYPE_LABEL[s.type]}`}
         subtitle={fmtLong(s.date)}
         footer={
-          !readOnly && (
-            <div className="flex gap-3">
+          <div className="flex gap-3">
+            {!readOnly && (
               <Button
                 variant="danger"
                 size="lg"
@@ -134,11 +167,12 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
                   onClose();
                 }}
               />
-              <Button variant="primary" size="lg" className="flex-1" onClick={close}>
-                Fatto
-              </Button>
-            </div>
-          )
+            )}
+            <Button size="lg" className="px-4" aria-label="Condividi PDF della seduta" disabled={pdfBusy || !answered.length} icon={<FileDown size={20} />} onClick={() => void sharePdf()} />
+            <Button variant="primary" size="lg" className="flex-1" onClick={close}>
+              {readOnly ? 'Chiudi' : 'Fatto'}
+            </Button>
+          </div>
         }
       >
         <fieldset disabled={readOnly} className="min-w-0">

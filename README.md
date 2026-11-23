@@ -76,6 +76,7 @@ Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una 
 Tab **RPE** (sola lettura per le squadre archiviate):
 
 - **Sedute**: `+ Seduta` crea un allenamento tecnico o una **partita** (tipo scelto nella seduta; nei grafici le partite hanno le barre tratteggiate) con data e durata decise dallo staff. Toccando un atleta si sceglie l'RPE sulla scala CR-10 (0 → 10, con 0,5) e, se serve, minuti diversi per quell'atleta; si passa da solo al prossimo senza risposta. Per ogni seduta: risposte x/N, RPE medio, TL medio.
+- **PDF della seduta**: dalla scheda della seduta (icona accanto a *Fatto*) si condivide o scarica il PDF con riepilogo (risposte, RPE medio, TL medio e totale) e tabella degli atleti in ordine di cognome: RPE con barra colorata, percezione, minuti, TL e Work Load del giorno.
 - **Importa Excel**: si sceglie il foglio sRPE scaricato da Google Sheets in `.xlsx` (colonne NOME ATLETA, DATA, RPE, TEMPO). Anteprima con sedute, RPE e abbinamento nomi → giocatori (anche solo per cognome); i nomi senza corrispondenza diventano nuovi giocatori. Ogni data diventa una seduta, la durata è quella più frequente del giorno.
 - **Analisi carico**:
   - squadra: quanti atleti sono sopra 1,3 / in zona / sotto 0,8 (toccando si filtra), grafico del TL medio di squadra con la media mobile, elenco atleti con indicatore del Work Load;
