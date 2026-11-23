@@ -481,7 +481,7 @@ export async function buildLoadPdf(input: LoadPdfInput): Promise<JsPDF> {
     doc.setDrawColor(...accent);
     doc.setLineWidth(0.4);
     doc.line(M, H - 12, W - M, H - 12);
-    text(`${APP.name} · ${r.team.name} · generato il ${when.toLocaleDateString('it-IT')} alle ${when.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`, M, H - 7.5, { size: 7.5, color: C.muted });
+    text(`${APP.name} · ${APP.credit} · ${r.team.name} · generato il ${when.toLocaleDateString('it-IT')} alle ${when.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`, M, H - 7.5, { size: 7.5, color: C.muted });
     text(`Pagina ${i} di ${pages}`, W - M, H - 7.5, { size: 7.5, color: C.muted, align: 'right' });
   }
   return doc;

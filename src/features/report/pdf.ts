@@ -332,7 +332,7 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
     doc.line(M, 297 - 12, W - M, 297 - 12);
     doc.setFontSize(7.5);
     doc.setTextColor(...muted);
-    doc.text(`${APP.name} · generato il ${when.toLocaleDateString('it-IT')} alle ${when.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`, M, 297 - 7.5);
+    doc.text(`${APP.name} · ${APP.credit} · generato il ${when.toLocaleDateString('it-IT')} alle ${when.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`, M, 297 - 7.5);
     doc.text(`Pagina ${i} di ${pages}`, W - M, 297 - 7.5, { align: 'right' });
   }
   return doc;

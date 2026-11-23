@@ -220,7 +220,7 @@ export function TeamFormSheet({ team, onClose, onSaved }: Props) {
             </div>
 
             <Field label="Nome squadra">
-              <input className="input" autoCapitalize="words" placeholder="es. Pallacanestro Don Bosco U17" value={draft.name} onChange={(e) => up({ name: e.target.value })} />
+              <input className="input" autoCapitalize="words" placeholder="es. Basket Club U17" value={draft.name} onChange={(e) => up({ name: e.target.value })} />
             </Field>
             <Field label="Stagione">
               <div className="flex gap-2">

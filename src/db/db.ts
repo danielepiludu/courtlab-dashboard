@@ -1,5 +1,5 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
-import { BUILTIN_LOGO, type Game, type GameReport, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
+import { type Game, type GameReport, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
 import { DEFAULT_TEAM } from '@/config';
 import { newId, notifyLocalChange, rpeId } from './ids';
 
@@ -12,7 +12,7 @@ export interface KV {
 
 export function defaultTeam(): Team {
   const t = Date.now();
-  return { ...DEFAULT_TEAM, logo: BUILTIN_LOGO, archived: false, createdAt: t, updatedAt: t };
+  return { ...DEFAULT_TEAM, archived: false, createdAt: t, updatedAt: t };
 }
 
 /** Tabelle sincronizzate tra i dispositivi (kv resta locale). */

@@ -39,7 +39,7 @@ p{margin:22px 0 0;font:500 34px/1.3 B;color:#C9D2E3}
 .scale span{width:58px;height:58px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.07)}
 </style></head><body><div class="c">
 <div class="logo"><img src="${icon}"></div>
-<div><div class="brand">Courtlab</div><h1>RPE allenamento</h1><p>Scegli il tuo nome e indica la fatica.<br>Bastano 10 secondi.</p><div class="scale">${chips}</div></div>
+<div><div class="brand">Courtlab <span style="letter-spacing:2px;font-size:22px;text-transform:none;opacity:.75">· powered by Daniele Piludu</span></div><h1>RPE allenamento</h1><p>Scegli il tuo nome e indica la fatica.<br>Bastano 10 secondi.</p><div class="scale">${chips}</div></div>
 </div></body></html>`;
 
 (async () => {

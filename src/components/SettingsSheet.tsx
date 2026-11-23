@@ -5,7 +5,6 @@ import { useCloud } from '@/cloud/client';
 import { useSyncLabel } from '@/cloud/CloudSheet';
 import { Sheet } from './ui/Sheet';
 import { exportBackup, importBackup, loadDemoTeam, wipeAll } from '@/db/repo';
-import { useActiveTeam } from '@/db/hooks';
 import { confirmDialog, toast } from '@/store/feedback';
 import { useUI } from '@/store/ui';
 import { APP } from '@/config';
@@ -31,7 +30,6 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [cloud, setCloud] = useState(false);
   const cloudUser = useCloud((x) => x.session?.user.email);
   const syncLabel = useSyncLabel();
-  const team = useActiveTeam();
   const activeTeamId = useUI((s) => s.activeTeamId);
   const setActiveTeam = useUI((s) => s.setActiveTeam);
   const setTeamsOpen = useUI((s) => s.setTeamsOpen);
@@ -76,7 +74,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         <div className="min-w-0">
           <b className="font-display text-xl tracking-wide">{APP.name}</b>
           <div className="truncate text-[13px] text-ink-muted">
-            {team?.name} · v{APP.version}
+            v{APP.version} · {APP.credit}
           </div>
         </div>
       </div>
