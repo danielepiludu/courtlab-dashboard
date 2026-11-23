@@ -164,11 +164,24 @@
 }
 
 @layer utilities {
-  .no-scrollbar {
-    scrollbar-width: none;
+  /* barre di scorrimento nascoste solo al tocco: con il mouse le righe scorrevoli restano usabili */
+  @media (hover: none), (pointer: coarse) {
+    .no-scrollbar {
+      scrollbar-width: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
   }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  @media (hover: hover) and (pointer: fine) {
+    .no-scrollbar {
+      scrollbar-width: thin;
+    }
+    /* righe di filtri/chip: al computer vanno a capo invece di scorrere */
+    .chip-row {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
   }
   .pt-safe {
     padding-top: var(--safe-top);

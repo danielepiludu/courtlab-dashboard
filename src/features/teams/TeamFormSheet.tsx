@@ -257,7 +257,7 @@ export function TeamFormSheet({ team, onClose, onSaved }: Props) {
                 <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted">
                   <Sparkles size={14} className="text-accent-light" /> Dal logo
                 </div>
-                <div className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 py-1">
+                <div className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 py-1 chip-row">
                   {swatches.map((s) => (
                     <SwatchButton key={s.hex} hex={s.hex} selected={current === s.hex} onClick={() => setColor(s.hex)} />
                   ))}
@@ -265,7 +265,7 @@ export function TeamFormSheet({ team, onClose, onSaved }: Props) {
               </>
             )}
             <div className="mb-1.5 text-[12px] font-semibold text-ink-muted">Palette</div>
-            <div className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 py-1">
+            <div className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 py-1 chip-row">
               {PRESETS.map((hex) => (
                 <SwatchButton key={hex} hex={hex} selected={current === hex} onClick={() => setColor(hex)} />
               ))}
