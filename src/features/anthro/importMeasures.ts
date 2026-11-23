@@ -73,7 +73,7 @@ export interface ParsedSheet {
 
 /** Legge una scheda. Restituisce null se non sembra una scheda di misurazioni. */
 export function parseMeasureSheet(sheetName: string, rows: Cell[][]): ParsedSheet | null {
-  const headerIdx = rows.findIndex((r) => r.slice(1).filter((c) => typeof c === 'string' && c.trim()).length >= 2);
+  const headerIdx = rows.findIndex((r) => r.slice(1).some((c) => typeof c === 'string' && c.trim()));
   if (headerIdx < 0) return null;
   const header = rows[headerIdx];
   const cols = header.map((c, i) => ({ i, name: typeof c === 'string' ? c.trim() : '' })).filter((c) => c.i > 0 && c.name);
@@ -86,6 +86,14 @@ export function parseMeasureSheet(sheetName: string, rows: Cell[][]): ParsedShee
     if (/nascita/.test(label)) {
       for (const c of filled) athletes.get(c.i)!.birthDate = cellISO(row[c.i] as Cell);
       recognized++;
+      continue;
+    }
+    if (label === 'note') {
+      for (const c of filled) {
+        const a = athletes.get(c.i)!;
+        const t = String(row[c.i]).trim();
+        a.note = a.note ? `${a.note}; ${t}` : t;
+      }
       continue;
     }
     const def = label ? MEASURES.find((m) => m.match.test(label)) : undefined;
