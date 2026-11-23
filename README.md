@@ -127,6 +127,17 @@ Il servizio online è un progetto [Supabase](https://supabase.com) (piano gratui
 
 Sicurezza (regole in `supabase/schema.sql`): gli atleti non hanno accesso alle tabelle, solo a due funzioni — leggere la seduta del proprio link e inviare un RPE valido per un nome in elenco a raccolta aperta. Lo staff vede solo le proprie raccolte. Online vengono pubblicati solo nome della squadra, colori, logo ridotto, data e durata della seduta, nome e numero dei giocatori e gli RPE inviati; tutto il resto resta sul dispositivo.
 
+## Antropometria e test fisici
+
+Tab **Giocatori → Misure** (le misure dello staff; *Rosa* resta l'elenco dei giocatori):
+
+- **Rilevazioni**: il `+` in alto crea una rilevazione (data e nome facoltativo, es. *Pre-season*); per ogni atleta si inseriscono le misure raggruppate — generali (altezza e reach con scarpa, peso, apertura braccia), circonferenze (torace; coscia vicino alla rotula, coscia sotto il gluteo e polpaccio con destra e sinistra affiancate), test di salto (SJ, CMJ), valutazioni (SQ test, Squat test: giudizi suggeriti o testo libero) e note. Dopo il salvataggio si passa al prossimo atleta da misurare.
+- **Confronto**: scelta la misura (o il BMI), tabella atleti × rilevazioni con la variazione dalla prima misura e la media della squadra.
+- **Scheda atleta** (tocca un atleta): età, per ogni misura mini-grafico, ultimo valore, variazione dalla precedente e dalla base; BMI; asimmetria destra/sinistra (in arancio dal 5%); valutazioni e note per rilevazione.
+- **Importa da Excel**: il foglio «Misurazioni» (una scheda per rilevazione, atleti in colonna, misure in riga). Il nome della scheda dà la data (`20082026` → 20/08/2026; un mese come `LUGLIO` → giorno 1, da controllare nell'anteprima); le righe senza nome diventano note; le date di nascita completano le schede dei giocatori (campo *Data di nascita*).
+- Calcoli (`src/engine/anthro.ts`, con test): BMI = peso / altezza² (altezza con scarpa, come nel foglio); asimmetria = |dx − sx| / max(dx, sx) × 100; età alla data della rilevazione.
+- Dati nelle tabelle `msessions` e `measures` (Dexie v6), inclusi in backup e sincronizzazione. **Dopo l'aggiornamento va rieseguito `supabase/schema.sql`** (nuovi tipi ammessi in `sync_records`).
+
 ## Comandi
 
 ```bash

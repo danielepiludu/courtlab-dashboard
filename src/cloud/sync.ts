@@ -79,7 +79,11 @@ async function saveState(s: SyncState) {
 }
 
 const set = (p: Partial<ReturnType<typeof useSync.getState>>) => useSync.setState(p);
-const message = (e: unknown) => (e instanceof CloudError ? e.message : e instanceof Error ? e.message : 'Errore di sincronizzazione');
+const message = (e: unknown) => {
+  const m = e instanceof CloudError ? e.message : e instanceof Error ? e.message : 'Errore di sincronizzazione';
+  // il database online non conosce ancora un tipo di dati nuovo dell'app
+  return /sync_records_kind_check/.test(m) ? 'Aggiorna il database online: riesegui schema.sql nel SQL Editor di Supabase' : m;
+};
 
 // ── invio ──
 async function push(state: SyncState): Promise<{ sent: number; rejected: number } | null> {

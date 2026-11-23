@@ -76,3 +76,15 @@ export function useRpeEntries(): import('./types').RpeEntry[] | undefined {
   const id = useActiveTeamId();
   return useLiveQuery(async () => (id == null ? [] : db.rpe.where('teamId').equals(id).toArray()), [id]);
 }
+
+/** Rilevazioni antropometriche della squadra attiva (dalla più recente). */
+export function useMeasureSessions(): import('./types').MeasureSession[] | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? [] : (await db.msessions.where('teamId').equals(id).toArray()).sort((a, b) => b.date.localeCompare(a.date))), [id]);
+}
+
+/** Misure degli atleti della squadra attiva. */
+export function useMeasures(): import('./types').AthleteMeasures[] | undefined {
+  const id = useActiveTeamId();
+  return useLiveQuery(async () => (id == null ? [] : db.measures.where('teamId').equals(id).toArray()), [id]);
+}
