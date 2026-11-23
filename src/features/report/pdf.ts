@@ -179,7 +179,15 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
     let cx = M;
     for (const c of cols) {
       const xx = c.a === 'left' ? cx + 2 : cx + c.w / 2;
-      doc.text(c.k, xx, y + 5, { align: c.a });
+      if (c.k === 'Andamento INT' && s.periodSpans.length) {
+        // al posto del titolo: Q1, Q2… sopra ciascun quarto
+        const gx = cx + 2;
+        const gw = c.w - 4;
+        const dur = Math.max(1, s.durationMs);
+        doc.setFontSize(7.5);
+        for (const sp of s.periodSpans) doc.text(sp.label, gx + (((sp.from + sp.to) / 2) / dur) * gw, y + 5, { align: 'center' });
+        doc.setFontSize(8.5);
+      } else doc.text(c.k, xx, y + 5, { align: c.a });
       cx += c.w;
     }
     y += 7.5;
@@ -259,11 +267,27 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
     const dur = Math.max(1, s.durationMs);
     const px = (t: number) => gx + (t / dur) * gw;
     const py = (v: number) => gy + gh - v * gh;
+    // quarti: alterni più scuri, pause tra i quarti grigie
+    s.periodSpans.forEach((sp, k) => {
+      if (k % 2 === 1) {
+        doc.setFillColor(228, 231, 236);
+        doc.rect(px(sp.from), gy, Math.max(0.2, px(sp.to) - px(sp.from)), gh, 'F');
+      }
+      const next = s.periodSpans[k + 1];
+      if (next && next.from - sp.to > 1000) {
+        doc.setFillColor(205, 209, 216);
+        doc.rect(px(sp.to), gy, Math.max(0.2, px(next.from) - px(sp.to)), gh, 'F');
+      }
+    });
     // fasce in campo
     doc.setFillColor(...mixRgb(primary, [255, 255, 255], 0.78));
     for (let k = 0; k < p.series.length - 1; k++) {
       if (p.series[k].on) doc.rect(px(p.series[k].t), gy, Math.max(0.2, px(p.series[k + 1].t) - px(p.series[k].t)), gh, 'F');
     }
+    // separatori dei quarti
+    doc.setDrawColor(150, 156, 166);
+    doc.setLineWidth(0.25);
+    for (const sp of s.periodSpans.slice(1)) doc.line(px(sp.from), gy, px(sp.from), gy + gh);
     doc.setLineWidth(0.45);
     for (let k = 0; k < p.series.length - 1; k++) {
       const a = p.series[k];
@@ -286,7 +310,8 @@ export async function buildReportPdf(input: PdfInput): Promise<JsPDF> {
   const legend = [
     'INT: carico di fatica dello stint su scala 0–1 (0 = fresco, 1 = massimo). Sale con il tempo di gioco consecutivo e totale,',
     'cala nelle interruzioni lunghe e recupera in panchina. INT medio = media sull\'intera partita; INT picco = valore massimo raggiunto.',
-    'Andamento INT: fasce colorate = in campo; linea dal grigio (fresco) al rosso (da cambiare). T = titolare.',
+    'Andamento INT: Q1, Q2… = quarti (OT = supplementari), grigio scuro = pausa tra i quarti; fasce colorate = in campo;',
+    'linea dal grigio (fresco) al rosso (da cambiare). T = titolare.',
   ];
   legend.forEach((l, i) => doc.text(l, M, y + i * 4));
   // scala colori

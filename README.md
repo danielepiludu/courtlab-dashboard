@@ -60,6 +60,8 @@ Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una 
 
 - **Termina partita** → conferma "Sei sicuro di voler concludere la partita?" → si apre il **resoconto**: punteggio ed esito, periodi e durata, migliori della partita (più minuti, INT di picco, più ingressi) e, per ogni convocato, minuti giocati, ingressi, **INT medio**, **INT di picco** e **mini-grafico dell'INT nel tempo** (fasce = in campo, linee tratteggiate = inizio periodo). Ordinabile per minuti, picco, medio o numero.
 - **Esporta PDF**: A4 pulito su sfondo bianco, intestazione nel colore primario della squadra con il logo, dettagli nel secondario, punteggio, data e avversario, migliori, tabella dei convocati con mini-grafico INT disegnato nel PDF, legenda. Sui telefoni che lo supportano c'è anche **Condividi** (WhatsApp, Drive, email…).
+- **Mini-grafico dell'INT per quarti**: etichette Q1, Q2… (OT per i supplementari) sopra ogni quarto, quarti alterni più chiari, separatori ben visibili e pause tra i quarti in grigio tratteggiato; nel PDF le etichette sono nell'intestazione della colonna.
+- **Eliminare una partita**: cestino accanto a ogni partita nella tab Resoconti o dentro il resoconto aperto (con conferma); elimina la partita e il resoconto, anche dagli altri dispositivi sincronizzati.
 - Chiudendo il resoconto si torna al primo substrato. La partita risulta conclusa nel calendario e il resoconto si riapre in qualsiasi momento dalla tab **Resoconti** (o toccando la partita nella Home).
 - I resoconti sono salvati nella tabella `reports` con un'istantanea dei convocati: modificare o eliminare un giocatore dopo non cambia il resoconto. Sono inclusi nel backup.
 

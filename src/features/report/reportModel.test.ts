@@ -21,6 +21,10 @@ function game(): GameReport {
 
 describe('resoconto della partita', () => {
   const r = summarize(game());
+  it('quarti delineati: inizio e fine di ogni periodo (la pausa resta fuori)', () => {
+    expect(r.periodSpans).toEqual([{ label: 'Q1', from: 0, to: 10 * MIN }]);
+    expect(r.durationMs - r.periodSpans[0].to).toBe(MIN);
+  });
   it('punteggio ed esito', () => {
     expect([r.us, r.them, r.outcome]).toEqual([3, 2, 'W']);
     expect(r.periods).toBe(1);

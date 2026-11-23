@@ -38,6 +38,8 @@ export interface ReportSummary {
   /** durata reale dalla prima pressione di Start alla fine */
   durationMs: number;
   periodMarks: { t: number; label: string }[];
+  /** quarti e supplementari: inizio e fine (ms dall'inizio); tra la fine di uno e l'inizio del successivo c'è la pausa */
+  periodSpans: { label: string; from: number; to: number }[];
   players: PlayerSummary[];
   leaders: { minutes?: PlayerSummary; peak?: PlayerSummary; entries?: PlayerSummary };
 }
@@ -79,6 +81,12 @@ export function summarize(r: GameReport): ReportSummary {
 
   const best = (key: 'playedMs' | 'intPeak' | 'entries') => players.filter((p) => p[key] > 0).sort((a, b) => b[key] - a[key])[0];
   const periodMarks = s.events.filter((e) => e.type === 'period_start').map((e) => ({ t: e.t - start, label: periodLabel((e as { period: number }).period) }));
+  const starts = s.events.filter((e): e is Extract<typeof e, { type: 'period_start' }> => e.type === 'period_start');
+  const periodSpans = starts.map((e, i) => {
+    const endEv = s.events.find((x) => x.type === 'period_end' && (x as { period: number }).period === e.period && x.t >= e.t);
+    const next = starts[i + 1]?.t ?? end;
+    return { label: periodLabel(e.period), from: e.t - start, to: Math.min(endEv?.t ?? next, next) - start };
+  });
 
   return {
     us: s.us,
@@ -89,6 +97,7 @@ export function summarize(r: GameReport): ReportSummary {
     overtimes: Math.max(0, s.period + 1 - GAME.quarters),
     durationMs: end - start,
     periodMarks,
+    periodSpans,
     players,
     leaders: { minutes: best('playedMs'), peak: best('intPeak'), entries: best('entries') },
   };
