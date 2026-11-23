@@ -136,8 +136,11 @@ export default function AthletePage({ token }: { token: string }) {
       <Shell>
         {header}
         <div className="flex flex-col items-center px-6 pt-10 text-center">
-          <span className="grid h-24 w-24 animate-[pop-in_.45s_ease-out] place-items-center rounded-full bg-ok text-night shadow-[0_0_40px_-6px_#2BB673]">
-            <Check size={52} strokeWidth={3} />
+          <span className="relative animate-[pop-in_.45s_ease-out]">
+            <Avatar r={me} size={104} className="shadow-[0_0_40px_-6px_#2BB673] ring-4 ring-ok" />
+            <span className="absolute -bottom-1 -right-1 grid h-10 w-10 place-items-center rounded-full border-4 border-[var(--c-bg)] bg-ok text-night">
+              <Check size={22} strokeWidth={3.5} />
+            </span>
           </span>
           <h1 className="mt-6 font-display text-[34px] font-bold leading-tight">Grazie, {me.name.split(' ')[0]}!</h1>
           <p className="mt-2 text-[16px] text-ink-muted">Hai indicato</p>
@@ -166,10 +169,19 @@ export default function AthletePage({ token }: { token: string }) {
             {s.roster.map((r) => {
               const done = s.answered.includes(r.id);
               return (
-                <button key={r.id} onClick={() => (vibrate(10), setMe(r), setRpe(null))} className="flex min-h-[60px] items-center gap-2.5 rounded-2xl border border-line bg-surface px-3 py-2 text-left active:scale-[.97]">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand font-display text-[16px] font-bold text-on-brand">{r.number || '·'}</span>
-                  <span className="min-w-0 flex-1 text-[15px] font-semibold leading-tight">{r.name}</span>
-                  {done && <Check size={16} className="shrink-0 text-ok" aria-label="già inviato" />}
+                <button key={r.id} onClick={() => (vibrate(10), setMe(r), setRpe(null))} className="flex min-h-[64px] items-center gap-2.5 rounded-2xl border border-line bg-surface px-2.5 py-2 text-left active:scale-[.97]">
+                  <span className="relative">
+                    <Avatar r={r} size={44} />
+                    {done && (
+                      <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full border-2 border-[var(--c-surface)] bg-ok text-night" aria-label="già inviato">
+                        <Check size={11} strokeWidth={4} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold leading-tight">{r.name}</span>
+                    {r.number && <span className="text-[12px] font-bold text-brand-text">#{r.number}</span>}
+                  </span>
                 </button>
               );
             })}
@@ -186,12 +198,18 @@ export default function AthletePage({ token }: { token: string }) {
         <button onClick={() => setMe(null)} className="mb-3 flex items-center gap-1 text-[14px] font-semibold text-ink-muted">
           <ChevronLeft size={18} /> Non sei {me.name.split(' ')[0]}? Cambia
         </button>
-        <h1 className="font-display text-[30px] font-bold leading-tight">Quanto è stato faticoso l'allenamento?</h1>
-        <p className="mb-4 text-[15px] text-ink-muted">
-          {me.number && <b className="text-brand-text">#{me.number} </b>}
-          {me.name}
-          {already && ' · hai già risposto, puoi cambiare il valore'}
-        </p>
+        <div className="mb-3 flex items-center gap-3">
+          <Avatar r={me} size={56} />
+          <div className="min-w-0">
+            <div className="truncate text-[18px] font-bold leading-tight">{me.name}</div>
+            <div className="text-[13px] text-ink-muted">
+              {me.number && <b className="text-brand-text">#{me.number}</b>}
+              {me.number && already && ' · '}
+              {already && 'hai già risposto, puoi cambiare il valore'}
+            </div>
+          </div>
+        </div>
+        <h1 className="mb-4 font-display text-[30px] font-bold leading-tight">Quanto è stato faticoso l'allenamento?</h1>
         <div className="grid gap-2">
           {[...RPE_SCALE].reverse().map((x) => {
             const on = rpe === x.value;
@@ -226,6 +244,24 @@ export default function AthletePage({ token }: { token: string }) {
         </button>
       </div>
     </Shell>
+  );
+}
+
+/** Cerchio dell'atleta: foto se c'è, altrimenti numero di maglia o iniziali. */
+function Avatar({ r, size, className }: { r: RosterItem; size: number; className?: string }) {
+  const initials = r.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+  return (
+    <span
+      className={cx('grid shrink-0 place-items-center overflow-hidden rounded-full bg-brand font-display font-bold text-on-brand', className)}
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
+    >
+      {r.photo ? <img src={r.photo} alt="" className="h-full w-full object-cover" draggable={false} /> : r.number || initials}
+    </span>
   );
 }
 

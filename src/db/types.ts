@@ -98,6 +98,23 @@ export function outcomeOf(g: Pick<Game, 'scoreUs' | 'scoreThem'>): Outcome {
 export const OUTCOME_LABEL: Record<Outcome, string> = { W: 'Vittoria', L: 'Sconfitta', D: 'Pareggio' };
 
 /** Confronto numeri di maglia: "0" < "00" < "1" < … < "99" */
+// particelle che fanno parte del cognome (De Luca, Di Stefano, Dal Molin…)
+const PARTICLES = new Set(['de', 'di', 'da', 'del', 'della', 'dello', 'dei', 'degli', 'dal', 'dalla', 'dall', "dall'", 'dalle', 'lo', 'la', 'li', 'le', 'van', 'von', 'mc', 'mac', "d'"]);
+
+/** Cognome da "Nome Cognome" (con particelle); con una sola parola è il nome intero. */
+export function surnameOf(name: string): string {
+  const w = name.trim().split(/\s+/);
+  if (w.length <= 1) return name.trim();
+  let i = w.length - 1;
+  while (i > 1 && PARTICLES.has(w[i - 1].toLowerCase())) i--;
+  return w.slice(i).join(' ');
+}
+
+/** Ordine alfabetico per cognome, poi per nome. */
+export function compareSurname(a: { name: string }, b: { name: string }): number {
+  return surnameOf(a.name).localeCompare(surnameOf(b.name), 'it', { sensitivity: 'base' }) || a.name.localeCompare(b.name, 'it', { sensitivity: 'base' });
+}
+
 export function compareNumbers(a: string, b: string): number {
   const na = a === '' ? 999 : Number(a);
   const nb = b === '' ? 999 : Number(b);

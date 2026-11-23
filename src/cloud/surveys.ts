@@ -1,6 +1,6 @@
 import { db } from '@/db/db';
 import { setRpe } from '@/db/rpeRepo';
-import { BUILTIN_LOGO, SESSION_TYPE_LABEL, type Player, type Team, type TrainingSession } from '@/db/types';
+import { BUILTIN_LOGO, SESSION_TYPE_LABEL, compareSurname, type Player, type Team, type TrainingSession } from '@/db/types';
 import { loadImageUrl } from '@/lib/image';
 import { rest } from './client';
 
@@ -20,6 +20,8 @@ export interface RosterItem {
   id: number;
   name: string;
   number: string;
+  /** foto ridotta (data URL JPEG) */
+  photo?: string;
 }
 
 export const LOGO_BUILTIN = 'builtin';
@@ -58,12 +60,29 @@ async function smallLogo(team: Team): Promise<string | null> {
   }
 }
 
-const num = (n: string | undefined) => (n != null && n.trim() !== '' && Number.isFinite(Number(n)) ? Number(n) : 999);
+/** Foto ridotta per la pagina del link (200 px, ~6 kB: nitida anche sugli schermi ad alta densità). */
+async function photoThumb(src: string | undefined, side = 200): Promise<string | undefined> {
+  if (!src) return undefined;
+  try {
+    const img = await loadImageUrl(src);
+    const k = side / Math.min(img.naturalWidth, img.naturalHeight);
+    const w = Math.round(img.naturalWidth * k);
+    const h = Math.round(img.naturalHeight * k);
+    const c = document.createElement('canvas');
+    c.width = side;
+    c.height = side;
+    c.getContext('2d')!.drawImage(img, (side - w) / 2, (side - h) / 2, w, h);
+    return c.toDataURL('image/jpeg', 0.74);
+  } catch {
+    return undefined;
+  }
+}
 
-export const roster = (players: Player[]): RosterItem[] =>
-  [...players]
-    .sort((a, b) => num(a.number) - num(b.number) || a.name.localeCompare(b.name))
-    .map((p) => ({ id: p.id!, name: p.name, number: p.number ?? '' }));
+/** Elenco per la pagina del link: ordine alfabetico per cognome, con foto ridotta. */
+export async function roster(players: Player[]): Promise<RosterItem[]> {
+  const sorted = [...players].sort(compareSurname);
+  return Promise.all(sorted.map(async (p) => ({ id: p.id!, name: p.name, number: p.number ?? '', photo: await photoThumb(p.photo) })));
+}
 
 /** Crea o aggiorna la raccolta online della seduta e restituisce il codice. */
 export async function publishSurvey(session: TrainingSession, team: Team, players: Player[], open = true): Promise<string> {
@@ -80,7 +99,7 @@ export async function publishSurvey(session: TrainingSession, team: Team, player
       session_date: session.date,
       session_label: SESSION_TYPE_LABEL[session.type],
       minutes: session.minutes,
-      roster: roster(players),
+      roster: await roster(players),
       open,
       updated_at: new Date().toISOString(),
     }),
