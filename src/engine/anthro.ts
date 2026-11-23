@@ -22,23 +22,24 @@ export interface MeasureDef {
 }
 
 export const MEASURE_GROUP_LABEL: Record<MeasureGroup, string> = {
-  generali: 'Generali',
+  generali: 'Antropometria',
   circonferenze: 'Circonferenze',
-  salti: 'Test di salto',
+  salti: 'Salti',
   valutazioni: 'Valutazioni',
 };
 
+// ordine di rilevazione: antropometria → circonferenze (prima le gambe, poi il torace) → salti → valutazioni
 export const MEASURES: MeasureDef[] = [
   { id: 'height', label: 'Altezza con scarpa', short: 'Altezza', unit: 'cm', group: 'generali', kind: 'number', match: /altezza/ },
   { id: 'weight', label: 'Peso', short: 'Peso', unit: 'kg', group: 'generali', kind: 'number', decimals: 1, match: /peso/ },
   { id: 'wingspan', label: 'Apertura braccia (wing span)', short: 'Wing span', unit: 'cm', group: 'generali', kind: 'number', match: /wing ?span|apertura/ },
   { id: 'reach', label: 'Reach con scarpa', short: 'Reach', unit: 'cm', group: 'generali', kind: 'number', match: /reach/ },
-  { id: 'thighKneeR', label: 'Coscia 3 cm dalla rotula dx', short: 'Rotula dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighKnee', side: 'dx', match: /coscia.*rotula.*\bdx\b/ },
-  { id: 'thighKneeL', label: 'Coscia 3 cm dalla rotula sx', short: 'Rotula sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighKnee', side: 'sx', match: /coscia.*rotula.*\bsx\b/ },
-  { id: 'thighGlutealR', label: 'Coscia sotto piega glutea dx', short: 'Gluteo dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighGluteal', side: 'dx', match: /coscia.*glute.*\bdx\b/ },
-  { id: 'thighGlutealL', label: 'Coscia sotto piega glutea sx', short: 'Gluteo sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighGluteal', side: 'sx', match: /coscia.*glute.*\bsx\b/ },
-  { id: 'calfR', label: 'Polpaccio dx', short: 'Polp. dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'calf', side: 'dx', match: /polpaccio.*\bdx\b/ },
-  { id: 'calfL', label: 'Polpaccio sx', short: 'Polp. sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'calf', side: 'sx', match: /polpaccio.*\bsx\b/ },
+  { id: 'thighKneeR', label: 'Coscia 3 cm sopra la rotula dx', short: 'Sopra rotula dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighKnee', side: 'dx', match: /coscia.*rotula.*\bdx\b/ },
+  { id: 'thighKneeL', label: 'Coscia 3 cm sopra la rotula sx', short: 'Sopra rotula sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighKnee', side: 'sx', match: /coscia.*rotula.*\bsx\b/ },
+  { id: 'thighGlutealR', label: 'Coscia sotto la piega glutea dx', short: 'Sotto gluteo dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighGluteal', side: 'dx', match: /coscia.*glute.*\bdx\b/ },
+  { id: 'thighGlutealL', label: 'Coscia sotto la piega glutea sx', short: 'Sotto gluteo sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'thighGluteal', side: 'sx', match: /coscia.*glute.*\bsx\b/ },
+  { id: 'calfR', label: 'Polpaccio dx', short: 'Polpaccio dx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'calf', side: 'dx', match: /polpaccio.*\bdx\b/ },
+  { id: 'calfL', label: 'Polpaccio sx', short: 'Polpaccio sx', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, pair: 'calf', side: 'sx', match: /polpaccio.*\bsx\b/ },
   { id: 'chest', label: 'Torace', short: 'Torace', unit: 'cm', group: 'circonferenze', kind: 'number', decimals: 1, match: /torace/ },
   { id: 'sj', label: 'SJ – mani sui fianchi', short: 'SJ', unit: 'cm', group: 'salti', kind: 'number', decimals: 1, match: /\bsj\b|squat jump/ },
   { id: 'cmj', label: 'CMJ', short: 'CMJ', unit: 'cm', group: 'salti', kind: 'number', decimals: 1, match: /\bcmj\b|counter ?movement/ },
@@ -50,10 +51,10 @@ export const MEASURE_BY_ID = new Map(MEASURES.map((m) => [m.id, m]));
 export const NUMERIC_MEASURES = MEASURES.filter((m) => m.kind === 'number');
 
 /** Coppie destra/sinistra per l'asimmetria. */
-export const PAIRS: { id: string; label: string; dx: string; sx: string }[] = [
-  { id: 'thighKnee', label: 'Coscia vicino alla rotula', dx: 'thighKneeR', sx: 'thighKneeL' },
-  { id: 'thighGluteal', label: 'Coscia sotto il gluteo', dx: 'thighGlutealR', sx: 'thighGlutealL' },
-  { id: 'calf', label: 'Polpaccio', dx: 'calfR', sx: 'calfL' },
+export const PAIRS: { id: string; label: string; short: string; dx: string; sx: string }[] = [
+  { id: 'thighKnee', label: 'Coscia 3 cm sopra la rotula', short: 'Coscia sopra rotula', dx: 'thighKneeR', sx: 'thighKneeL' },
+  { id: 'thighGluteal', label: 'Coscia sotto la piega glutea', short: 'Coscia sotto gluteo', dx: 'thighGlutealR', sx: 'thighGlutealL' },
+  { id: 'calf', label: 'Polpaccio', short: 'Polpaccio', dx: 'calfR', sx: 'calfL' },
 ];
 
 /** Giudizi suggeriti per i test qualitativi (come nel foglio). */

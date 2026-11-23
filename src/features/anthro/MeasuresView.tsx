@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, FileSpreadsheet, Ruler } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, FileSpreadsheet, Ruler, Share2 } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Chip';
@@ -10,6 +10,9 @@ import { MEASURES, MEASURE_BY_ID, NUMERIC_MEASURES, PAIRS, ageAt, asymmetry, bmi
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { toast } from '@/store/feedback';
+import { useActiveTeam } from '@/db/hooks';
+import { deliverFile } from '@/lib/deliver';
+import { contrast, normalizeHex } from '@/theme/color';
 import { MeasureSessionSheet } from './MeasureSessionSheet';
 import { sessionLabel } from './measuresRepo';
 import { applyMeasureImport, parseMeasureSheet, planMeasureImport, type MeasureImportPlan } from './importMeasures';
@@ -259,6 +262,37 @@ function ImportSheet({ open, onClose, teamId, players }: { open: boolean; onClos
 }
 
 /** Antropometria della squadra: confronto tra rilevazioni per misura, rilevazioni e importazione. */
+/** Excel con tutte le rilevazioni, da condividere sul Drive della società. */
+function ExportBar({ players, sessions, measures }: { players: Player[]; sessions: MeasureSession[]; measures: AthleteMeasures[] }) {
+  const team = useActiveTeam();
+  const [busy, setBusy] = useState<string | null>(null);
+  if (!team || !measures.length) return null;
+  const run = async (mode: 'share' | 'download') => {
+    setBusy(mode);
+    try {
+      const { buildMeasuresXlsx, measuresXlsxFileName } = await import('./measuresXlsx');
+      const bg = normalizeHex(team.primary) ?? '#1F2937';
+      const blob = await buildMeasuresXlsx({ team, players, sessions, measures }, { bg, fg: contrast('#ffffff', bg) >= contrast('#111111', bg) ? '#FFFFFF' : '#111111' });
+      const r = await deliverFile(blob, measuresXlsxFileName(team), mode);
+      haptic.confirm();
+      toast(r === 'shared' ? 'Scegli Drive per salvarlo nella cartella condivisa' : 'Excel salvato nei download', 'success');
+    } catch (e) {
+      console.error(e);
+      toast('Esportazione non riuscita', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="mt-5 flex gap-2">
+      <Button className="flex-1" disabled={!!busy} icon={<Share2 size={18} />} onClick={() => run('share')}>
+        {busy === 'share' ? 'Creazione…' : 'Esporta Excel'}
+      </Button>
+      <Button aria-label="Scarica Excel" disabled={!!busy} icon={<Download size={18} />} onClick={() => run('download')} />
+    </div>
+  );
+}
+
 export function MeasuresView({
   teamId,
   players,
@@ -305,7 +339,7 @@ export function MeasuresView({
           }
         />
         <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} teamId={teamId} players={players} />
-        <MeasureSessionSheet session={current} players={roster} measures={measures} readOnly={readOnly} onClose={() => onOpen(null)} />
+        <MeasureSessionSheet session={current} players={roster} measures={measures} allSessions={sessions} readOnly={readOnly} onClose={() => onOpen(null)} />
       </>
     );
 
@@ -415,7 +449,8 @@ export function MeasuresView({
           )}
         </>
       )}
-      <MeasureSessionSheet session={current} players={roster} measures={measures} readOnly={readOnly} onClose={() => onOpen(null)} />
+      <ExportBar players={players} sessions={sessions} measures={measures} />
+      <MeasureSessionSheet session={current} players={roster} measures={measures} allSessions={sessions} readOnly={readOnly} onClose={() => onOpen(null)} />
       <AthleteSheet player={athlete} sessions={asc} measures={measures} onClose={() => setAthlete(null)} />
       <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} teamId={teamId} players={players} />
     </>

@@ -183,6 +183,8 @@ export interface MeasureSession {
   date: string;
   label: string;
   notes: string;
+  /** misure da rilevare in questa sessione (id); vuoto = tutte */
+  fields?: string[];
   createdAt: number;
   updatedAt: number;
 }
