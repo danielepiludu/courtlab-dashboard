@@ -158,7 +158,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
             risposte · RPE medio{' '}
             <b style={{ color: rpeColor(avgRpe) }}>{avgRpe == null ? '–' : avgRpe.toFixed(1).replace('.', ',')}</b> · TL medio <b className="text-ink">{avgTl == null ? '–' : Math.round(avgTl)}</b>
           </p>
-          {!readOnly && s.id != null && <SurveyPanel session={s} players={players} />}
+          {!readOnly && s.id != null && <SurveyPanel session={s} players={players} missing={players.length - answered.length} />}
           <div className="overflow-hidden rounded-2xl bg-surface">
             {players.map((p) => {
               const e = mine.get(p.id!);
