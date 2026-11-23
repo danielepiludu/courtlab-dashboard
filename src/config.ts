@@ -4,7 +4,7 @@
  */
 export const APP = {
   name: 'Courtlab',
-  version: '1.9.0',
+  version: '1.9.1',
 } as const;
 
 /** Squadra presente al primo avvio */

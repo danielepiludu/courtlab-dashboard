@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { compareNumbers, type Game, type Player, type Team } from './types';
+import { compareSurname, type Game, type Player, type Team } from './types';
 import { useUI } from '@/store/ui';
 
 const sortGames = (a: Game, b: Game) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
@@ -23,11 +23,11 @@ export function useReadOnly(): boolean {
   return !!useActiveTeam()?.archived;
 }
 
-/** Giocatori della squadra attiva, ordinati per numero di maglia. `undefined` mentre carica. */
+/** Giocatori della squadra attiva, in ordine alfabetico per cognome. `undefined` mentre carica. */
 export function usePlayers(): Player[] | undefined {
   const id = useActiveTeamId();
   return useLiveQuery(
-    async () => (id == null ? [] : (await db.players.where('teamId').equals(id).toArray()).sort((a, b) => compareNumbers(a.number, b.number))),
+    async () => (id == null ? [] : (await db.players.where('teamId').equals(id).toArray()).sort(compareSurname)),
     [id],
   );
 }

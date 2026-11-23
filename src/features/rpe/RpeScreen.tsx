@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, ChevronRight, FileSpreadsheet, Link2, Plus } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -8,7 +8,9 @@ import { Sheet } from '@/components/ui/Sheet';
 import { EmptyState, SectionTitle } from '@/components/ui/misc';
 import { useActiveTeam, usePlayers, useRpeEntries, useSessions } from '@/db/hooks';
 import { newSession, saveSession, toLoadEntries } from '@/db/rpeRepo';
-import { SESSION_TYPE_LABEL, type Player, type TrainingSession } from '@/db/types';
+import { SESSION_TYPE_LABEL, type Player, type Team, type TrainingSession } from '@/db/types';
+import { useCloud } from '@/cloud/client';
+import { publishSurvey } from '@/cloud/surveys';
 import { LOAD_CONFIG, entryTL } from '@/engine/load';
 import { fmtMedium, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
@@ -133,6 +135,21 @@ function ImportSheet({ open, onClose, teamId, players }: { open: boolean; onClos
   );
 }
 
+// una volta per avvio: aggiorna le pagine dei link aperti (elenco, ordine e foto dei giocatori)
+let linksRefreshed = false;
+function useRefreshOpenLinks(sessions: TrainingSession[] | undefined, team: Team | undefined, players: Player[]) {
+  const logged = useCloud((x) => !!x.session);
+  useEffect(() => {
+    if (linksRefreshed || !logged || !team || !players.length || !sessions) return;
+    const open = sessions.filter((s) => s.surveyToken && s.surveyOpen !== false);
+    if (!open.length) return;
+    linksRefreshed = true;
+    void Promise.all(open.map((s) => publishSurvey(s, team, players, true))).catch(() => {
+      linksRefreshed = false;
+    });
+  }, [sessions, team, players, logged]);
+}
+
 export function RpeScreen() {
   const team = useActiveTeam();
   const readOnly = !!team?.archived;
@@ -145,6 +162,7 @@ export function RpeScreen() {
   const [importOpen, setImportOpen] = useState(false);
   const [windowDays, setWindowDays] = useState(readWindow);
   useSurveySync(sessions);
+  useRefreshOpenLinks(sessions, team, players);
 
   const sessionsAsc = useMemo(() => [...(sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)), [sessions]);
   const loadEntries = useMemo(() => toLoadEntries(sessionsAsc, entries ?? [], players), [sessionsAsc, entries, players]);
