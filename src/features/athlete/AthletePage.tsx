@@ -50,6 +50,10 @@ export default function AthletePage({ token }: { token: string }) {
 
   const load = useCallback(async () => {
     setState({ kind: 'loading' });
+    if (!token) {
+      setState({ kind: 'error', message: 'Questo indirizzo non contiene un link valido. Apri il link completo che ti ha mandato lo staff.' });
+      return;
+    }
     try {
       const survey = await rpc<PublicSurvey | null>('get_survey', { p_token: token });
       if (!survey) throw new CloudError('Link non valido o scaduto: chiedi allo staff un nuovo link.');

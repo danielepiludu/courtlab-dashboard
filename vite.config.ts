@@ -51,7 +51,7 @@ export default defineConfig({
         globIgnores: ['**/html2canvas*', '**/purify.es*', '**/index.es-*'],
         navigateFallback: 'index.html',
         // la pagina del link atleti non deve mai essere sostituita dall'app dello staff
-        navigateFallbackDenylist: [/\/rpe\//],
+        navigateFallbackDenylist: [/\/rpe(\/.*)?$/],
         cleanupOutdatedCaches: true,
       },
     }),
