@@ -1,7 +1,7 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
-import { type Game, type GameReport, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
+import { type AthleteMeasures, type Game, type GameReport, type MeasureSession, type Player, type ReportPlayer, type RpeEntry, type Team, type TrainingSession } from './types';
 import { DEFAULT_TEAM } from '@/config';
-import { newId, notifyLocalChange, rpeId } from './ids';
+import { measureId, newId, notifyLocalChange, rpeId } from './ids';
 
 /** Record generico chiave/valore (stato partita in corso, resoconti, impostazioni) */
 export interface KV {
@@ -16,7 +16,7 @@ export function defaultTeam(): Team {
 }
 
 /** Tabelle sincronizzate tra i dispositivi (kv resta locale). */
-export const SYNC_KINDS = ['teams', 'players', 'games', 'reports', 'sessions', 'rpe'] as const;
+export const SYNC_KINDS = ['teams', 'players', 'games', 'reports', 'sessions', 'rpe', 'msessions', 'measures'] as const;
 export type SyncKind = (typeof SYNC_KINDS)[number];
 
 export class AppDB extends Dexie {
@@ -27,6 +27,8 @@ export class AppDB extends Dexie {
   reports!: Table<GameReport, number>;
   sessions!: Table<TrainingSession, number>;
   rpe!: Table<RpeEntry, number>;
+  msessions!: Table<MeasureSession, number>;
+  measures!: Table<AthleteMeasures, number>;
 
   constructor() {
     super('donbosco-basket-monitor');
@@ -99,6 +101,19 @@ export class AppDB extends Dexie {
         await t.bulkAdd(all.map((r) => ({ ...r, id: rpeId(r.sessionId, r.playerId) })));
       });
 
+    // v6: antropometria (rilevazioni e misure per atleta)
+    this.version(6).stores({
+      teams: '++id, createdAt',
+      players: '++id, teamId, name, number, role, status',
+      games: '++id, teamId, date, status',
+      kv: 'key',
+      reports: 'gameId, teamId',
+      sessions: '++id, teamId, date',
+      rpe: '++id, teamId, sessionId, playerId, &[sessionId+playerId]',
+      msessions: '++id, teamId, date',
+      measures: '++id, teamId, sessionId, playerId, &[sessionId+playerId]',
+    });
+
     // Id per i nuovi elementi e segnalazione delle modifiche (per la sincronizzazione)
     for (const kind of SYNC_KINDS) {
       const table = this.table(kind);
@@ -106,7 +121,12 @@ export class AppDB extends Dexie {
       table.hook('creating', function (pk, obj: Record<string, unknown>) {
         let key = pk;
         if (pk == null && kind !== 'reports') {
-          key = kind === 'rpe' ? rpeId(obj.sessionId as number, obj.playerId as number) : newId();
+          key =
+            kind === 'rpe'
+              ? rpeId(obj.sessionId as number, obj.playerId as number)
+              : kind === 'measures'
+                ? measureId(obj.sessionId as number, obj.playerId as number)
+                : newId();
         }
         notifyLocalChange(kind, keyOf(key, obj), false);
         return pk == null && kind !== 'reports' ? key : undefined;

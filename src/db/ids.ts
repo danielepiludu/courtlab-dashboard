@@ -29,6 +29,12 @@ export function rpeId(sessionId: number, playerId: number): number {
   return v < MIN ? v + MIN : v;
 }
 
+/** Misure di un atleta in una rilevazione: stesso id su tutti i dispositivi. */
+export function measureId(sessionId: number, playerId: number): number {
+  const v = hash53(`mis:${sessionId}:${playerId}`);
+  return v < MIN ? v + MIN : v;
+}
+
 // ── Notifica delle modifiche locali (usata dalla sincronizzazione) ──
 type Listener = (kind: string, key: number, deleted: boolean) => void;
 const listeners = new Set<Listener>();

@@ -4,11 +4,13 @@ import { HeaderAdd, ScreenHeader } from '@/components/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { RoleBadge, STATUS_META, StatusBadge } from '@/components/ui/Badges';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
+import { Chip, Segmented } from '@/components/ui/Chip';
+import { MeasuresView } from '@/features/anthro/MeasuresView';
+import { newMeasureSession, saveMeasureSession } from '@/features/anthro/measuresRepo';
 import { EmptyState } from '@/components/ui/misc';
-import { useActiveTeam, usePlayers } from '@/db/hooks';
+import { useActiveTeam, useMeasureSessions, useMeasures, usePlayers } from '@/db/hooks';
 import { newPlayer } from '@/db/repo';
-import { ROLES, STATUSES, surnameFirst, type Player, type PlayerStatus, type Role } from '@/db/types';
+import { ROLES, STATUSES, surnameFirst, type MeasureSession, type Player, type PlayerStatus, type Role } from '@/db/types';
 import { fmtDayMonth } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { PlayerFormSheet } from './PlayerFormSheet';
@@ -45,6 +47,29 @@ export function PlayersScreen() {
   const [role, setRole] = useState<Role | null>(null);
   const [status, setStatus] = useState<PlayerStatus | null>(null);
   const [editing, setEditing] = useState<Player | null>(null);
+  const [tab, setTab] = useState<'roster' | 'measures'>(() => {
+    try {
+      return localStorage.getItem('bm-players-tab') === 'measures' ? 'measures' : 'roster';
+    } catch {
+      return 'roster';
+    }
+  });
+  const [openMeasure, setOpenMeasure] = useState<MeasureSession | null>(null);
+  const msessions = useMeasureSessions();
+  const measures = useMeasures();
+  const switchTab = (t: 'roster' | 'measures') => {
+    setTab(t);
+    try {
+      localStorage.setItem('bm-players-tab', t);
+    } catch {
+      /* ignora */
+    }
+  };
+  const newMeasure = async () => {
+    const s = newMeasureSession(teamId);
+    const id = await saveMeasureSession(s);
+    setOpenMeasure({ ...s, id });
+  };
   const all = players ?? [];
   const list = all.filter((p) => (!role || p.role === role) && (!status || p.status === status));
   const count = (s: PlayerStatus) => all.filter((p) => p.status === s).length;
@@ -56,11 +81,28 @@ export function PlayersScreen() {
         subtitle={all.length ? `${all.length} in rosa · ${count('available')} disponibili` : team?.name}
         right={
           !readOnly && (
-            <HeaderAdd label="Aggiungi giocatore" onClick={() => setEditing(newPlayer(teamId))} />
+            <HeaderAdd label={tab === 'measures' ? 'Nuova rilevazione' : 'Aggiungi giocatore'} onClick={() => (tab === 'measures' ? void newMeasure() : setEditing(newPlayer(teamId)))} />
           )
         }
       />
       <div className="mx-auto max-w-2xl pt-3">
+        <div className="px-4 pb-3">
+          <Segmented
+            value={tab}
+            onChange={switchTab}
+            options={[
+              { value: 'roster', label: 'Rosa' },
+              { value: 'measures', label: 'Misure' },
+            ]}
+          />
+        </div>
+        {tab === 'measures' ? (
+          <div className="px-4">
+            <MeasuresView teamId={teamId} players={all} sessions={msessions} measures={measures ?? []} readOnly={readOnly} open={openMeasure} onOpen={setOpenMeasure} />
+            <div className="h-6" />
+          </div>
+        ) : (
+        <>
         {all.length > 0 && (
           // un'unica riga di filtri: ruoli e, solo se servono, gli stati non disponibili
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4">
@@ -112,6 +154,8 @@ export function PlayersScreen() {
           )}
           <div className="h-6" />
         </div>
+        </>
+        )}
       </div>
       <PlayerFormSheet player={editing} readOnly={readOnly} onClose={() => setEditing(null)} />
     </>

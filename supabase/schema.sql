@@ -117,7 +117,7 @@ grant execute on function public.submit_rpe(text, bigint, numeric) to anon, auth
 -- ─────────────────────────────────────────────────────────────────────────────
 create table if not exists public.sync_records (
   owner      uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  kind       text not null check (kind in ('teams', 'players', 'games', 'reports', 'sessions', 'rpe')),
+  kind       text not null,
   id         text not null check (length(id) between 1 and 40),
   data       jsonb,
   deleted    boolean not null default false,
@@ -126,6 +126,11 @@ create table if not exists public.sync_records (
   primary key (owner, kind, id)
 );
 create index if not exists sync_records_pull on public.sync_records (owner, server_at);
+
+-- tipi di elementi ammessi (aggiornato quando l'app ne aggiunge di nuovi: rieseguire lo script)
+alter table public.sync_records drop constraint if exists sync_records_kind_check;
+alter table public.sync_records add constraint sync_records_kind_check
+  check (kind in ('teams', 'players', 'games', 'reports', 'sessions', 'rpe', 'msessions', 'measures'));
 
 alter table public.sync_records enable row level security;
 drop policy if exists "ognuno vede e modifica solo i propri dati" on public.sync_records;

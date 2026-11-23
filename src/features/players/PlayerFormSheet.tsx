@@ -198,6 +198,9 @@ export function PlayerFormSheet({ player, readOnly = false, onClose }: Props) {
               </Field>
             </div>
             {duplicate && <p className="-mt-2 mb-4 text-[13px] font-semibold text-warn">Il numero {draft.number} è già di {duplicate.name}</p>}
+            <Field label="Data di nascita">
+              <input type="date" className="input" value={draft.birthDate ?? ''} onChange={(e) => up({ birthDate: e.target.value || undefined })} />
+            </Field>
 
             <div className="mb-4">
               <span className="label">Ruolo · {ROLE_LABEL[draft.role]}</span>

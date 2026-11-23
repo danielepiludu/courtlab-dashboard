@@ -65,6 +65,8 @@ export interface Player {
   statusDetails: string;
   /** Foto come data URL JPEG quadrata (mostrata circolare) */
   photo?: string;
+  /** YYYY-MM-DD (età alle misurazioni) */
+  birthDate?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -170,5 +172,28 @@ export interface RpeEntry {
   /** minuti per questo atleta se diversi da quelli della seduta (es. uscito prima) */
   minutes: number | null;
   source: 'staff' | 'atleta' | 'import';
+  updatedAt: number;
+}
+
+/** Rilevazione antropometrica (una data, più atleti). */
+export interface MeasureSession {
+  id?: number;
+  teamId: number;
+  /** YYYY-MM-DD */
+  date: string;
+  label: string;
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Misure di un atleta in una rilevazione: valori numerici o giudizi (test qualitativi). */
+export interface AthleteMeasures {
+  id?: number;
+  teamId: number;
+  sessionId: number;
+  playerId: number;
+  values: Record<string, number | string>;
+  note: string;
   updatedAt: number;
 }
