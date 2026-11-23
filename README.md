@@ -67,12 +67,17 @@ Lo stato salvato contiene carico, minuti e istanti di ingresso/uscita: dopo una 
 
 Tab **RPE** (sola lettura per le squadre archiviate):
 
-- **Sedute**: `+ Seduta` crea un allenamento tecnico di basket con data e durata decise dallo staff. Toccando un atleta si sceglie l'RPE sulla scala CR-10 (0 → 10, con 0,5) e, se serve, minuti diversi per quell'atleta; si passa da solo al prossimo senza risposta. Per ogni seduta: risposte x/N, RPE medio, TL medio.
+- **Sedute**: `+ Seduta` crea un allenamento tecnico o una **partita** (tipo scelto nella seduta; nei grafici le partite hanno le barre tratteggiate) con data e durata decise dallo staff. Toccando un atleta si sceglie l'RPE sulla scala CR-10 (0 → 10, con 0,5) e, se serve, minuti diversi per quell'atleta; si passa da solo al prossimo senza risposta. Per ogni seduta: risposte x/N, RPE medio, TL medio.
 - **Importa Excel**: si sceglie il foglio sRPE scaricato da Google Sheets in `.xlsx` (colonne NOME ATLETA, DATA, RPE, TEMPO). Anteprima con sedute, RPE e abbinamento nomi → giocatori (anche solo per cognome); i nomi senza corrispondenza diventano nuovi giocatori. Ogni data diventa una seduta, la durata è quella più frequente del giorno.
 - **Analisi carico**:
   - squadra: quanti atleti sono sopra 1,3 / in zona / sotto 0,8 (toccando si filtra), grafico del TL medio di squadra con la media mobile, elenco atleti con indicatore del Work Load;
   - atleta: riquadro del giorno selezionato (TL, media personale, media squadra, Work Load con stato), due grafici allineati sullo stesso asse dei giorni — sopra il carico (barre TL, media personale, media squadra), sotto il Work Load con la fascia 0,8–1,3 — e tabella giorno per giorno. Toccando un giorno nel grafico o nella tabella si aggiorna il riquadro. I punti vuoti del Work Load sono i giorni senza RPE (valore riportato dal precedente).
   - La finestra della media mobile è regolabile (predefinita 7 giorni).
+
+- **Report ed export** (Analisi carico → *Report PDF ed Excel*, oppure l'icona nella scheda dell'atleta): periodo a scelta (7 giorni, 4 settimane, stagione, personalizzato).
+  - **PDF**: pagina squadra (sedute, RPE medio, TL medio, risposte, zone; grafico del TL medio con la media di squadra; tabella atleti in ordine di cognome con Work Load e giorni sopra 1,3) e, a scelta, una pagina per atleta con i due grafici, il dettaglio seduta per seduta e le partite monitorate. Condivisibile (WhatsApp, Drive…) o scaricabile.
+  - **Excel** (.xlsx): fogli *Riepilogo*, *Giorno per giorno*, *Squadra*, *DB* (stesse colonne del foglio sRPE, reimportabile in Courtlab) e *Partite*.
+  - **Minuti e INT**: le partite monitorate con la schermata live nel periodo aggiungono partite, minuti e INT medio per atleta (anche nella scheda dell'atleta, sezione *Partite monitorate*).
 
 Formule identiche al foglio: verificate su tutte le 43 date in `src/engine/load.test.ts` e, con il file reale (non incluso nel repository), su tutti i 15 atleti dopo l'importazione nell'app: 2580 valori, nessuna differenza.
 
@@ -204,7 +209,8 @@ Dopo ogni modifica: `VITE_BASE=./ npm run build && npx cap sync android`. Il cod
 │       ├── report/                  riepilogo (+ test), schermata resoconto, grafico INT, PDF (+ test)
 │       ├── reports/                 tab Resoconti
 │       ├── athlete/                 pagina pubblica del link RPE per gli atleti (entry: rpe/index.html)
-│       └── rpe/                     tab RPE: sedute, scala CR-10, analisi carico, grafico, import Excel (+ test)
+│       └── rpe/                     tab RPE: sedute, scala CR-10, analisi carico, grafico, import Excel,
+│                                    report del carico (loadReport + PDF + Excel, con test)
 └── .github/workflows/deploy.yml     test + build + GitHub Pages
 ```
 
@@ -220,4 +226,4 @@ Carico interno (RPE):
 - [x] **Fase 1** — sedute, inserimento RPE, calcoli del foglio sRPE, grafico, import da Excel
 - [x] **Fase 2** — sincronizzazione tra dispositivi dello staff con account (offline-first, vince la modifica più recente)
 - [x] **Fase 3** — link per gli atleti per inserire l'RPE senza installare nulla (da attivare con il progetto Supabase)
-- [ ] **Fase 4** — report ed export del carico (PDF/Excel), integrazione minuti e INT
+- [x] **Fase 4** — report ed export del carico (PDF/Excel), integrazione minuti e INT, sedute di tipo Partita

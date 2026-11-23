@@ -122,8 +122,9 @@ export function compareNumbers(a: string, b: string): number {
 }
 
 /** Seduta di allenamento per l'RPE (session-RPE). La durata la inserisce lo staff. */
-export type SessionType = 'basket';
-export const SESSION_TYPE_LABEL: Record<SessionType, string> = { basket: 'Allenamento tecnico' };
+export type SessionType = 'basket' | 'partita';
+export const SESSION_TYPES: SessionType[] = ['basket', 'partita'];
+export const SESSION_TYPE_LABEL: Record<SessionType, string> = { basket: 'Allenamento tecnico', partita: 'Partita' };
 
 export interface TrainingSession {
   id?: number;

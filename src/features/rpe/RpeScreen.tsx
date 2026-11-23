@@ -16,6 +16,7 @@ import { fmtMedium, todayISO } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { toast } from '@/store/feedback';
 import { LoadAnalysis } from './LoadAnalysis';
+import { ExportSheet } from './ExportSheet';
 import { useSurveySync } from '@/cloud/useSurveySync';
 import { SessionSheet, rpeColor } from './SessionSheet';
 import { applyImport, parseSrpeRows, planImport, type ImportPlan } from './importSrpe';
@@ -160,11 +161,13 @@ export function RpeScreen() {
   const [view, setView] = useState<'sessions' | 'analysis'>('sessions');
   const [open, setOpen] = useState<TrainingSession | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportFor, setExportFor] = useState<{ id?: number } | null>(null);
   const [windowDays, setWindowDays] = useState(readWindow);
   useSurveySync(sessions);
   useRefreshOpenLinks(sessions, team, players);
 
   const sessionsAsc = useMemo(() => [...(sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)), [sessions]);
+  const matchDates = useMemo(() => new Set(sessionsAsc.filter((s) => s.type === 'partita').map((s) => s.date)), [sessionsAsc]);
   const loadEntries = useMemo(() => toLoadEntries(sessionsAsc, entries ?? [], players), [sessionsAsc, entries, players]);
 
   const changeWindow = (d: number) => {
@@ -286,12 +289,31 @@ export function RpeScreen() {
             )}
           </>
         ) : (
-          <LoadAnalysis players={players} entries={loadEntries} windowDays={windowDays} onWindowChange={changeWindow} />
+          <LoadAnalysis
+            players={players}
+            entries={loadEntries}
+            windowDays={windowDays}
+            onWindowChange={changeWindow}
+            matchDates={matchDates}
+            onExport={(id) => setExportFor({ id })}
+          />
         )}
         <div className="h-6" />
       </div>
 
       <SessionSheet session={open ? (sessions?.find((x) => x.id === open.id) ?? open) : null} players={players} entries={entries ?? []} readOnly={readOnly} onClose={() => setOpen(null)} />
+      {team?.id != null && (
+        <ExportSheet
+          open={!!exportFor}
+          onClose={() => setExportFor(null)}
+          team={team}
+          players={players}
+          sessions={sessions ?? []}
+          entries={entries ?? []}
+          windowDays={windowDays}
+          athleteId={exportFor?.id}
+        />
+      )}
       {team?.id != null && <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} teamId={team.id} players={players} />}
     </>
   );
