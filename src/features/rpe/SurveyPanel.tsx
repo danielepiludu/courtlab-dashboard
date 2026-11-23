@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Copy, Link2, Lock, LockOpen, RefreshCw, Share2 } from 'lucide-react';
+import { BellRing, Copy, Link2, Lock, LockOpen, RefreshCw, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CloudSheet } from '@/cloud/CloudSheet';
 import { CloudError, useCloud } from '@/cloud/client';
 import { cloudConfigured } from '@/cloud/config';
 import { publishSurvey, pullResponses, setSurveyOpen, surveyUrl } from '@/cloud/surveys';
 import { useActiveTeam } from '@/db/hooks';
-import { SESSION_TYPE_LABEL, type Player, type TrainingSession } from '@/db/types';
+import { SESSION_TYPE_LABEL, shortSurname, type Player, type TrainingSession } from '@/db/types';
+import { db } from '@/db/db';
 import { fmtLong } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
@@ -15,7 +16,7 @@ import { toast } from '@/store/feedback';
 const errMsg = (e: unknown) => (e instanceof CloudError ? e.message : 'Operazione non riuscita');
 
 /** Link per gli atleti: crea, condividi, aggiorna le risposte, apri/chiudi la raccolta. */
-export function SurveyPanel({ session, players }: { session: TrainingSession; players: Player[] }) {
+export function SurveyPanel({ session, players, missing = 0 }: { session: TrainingSession; players: Player[]; /** atleti senza risposta */ missing?: number }) {
   const team = useActiveTeam();
   const logged = useCloud((s) => !!s.session);
   const [busy, setBusy] = useState(false);
@@ -79,6 +80,37 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
       toast(n ? `${n} risposte nuove` : 'Nessuna risposta nuova', n ? 'success' : 'info');
     });
 
+  /** Promemoria: messaggio con i cognomi di chi non ha ancora risposto e il link. */
+  const remind = () =>
+    run(async () => {
+      // prima scarica le ultime risposte, così l'elenco è aggiornato
+      await pullResponses([session]).catch(() => 0);
+      const done = new Set((await db.rpe.where('sessionId').equals(session.id!).toArray()).filter((e) => e.rpe != null).map((e) => e.playerId));
+      const left = players.filter((p) => !done.has(p.id!));
+      if (!left.length) {
+        toast('Hanno già risposto tutti', 'success');
+        return;
+      }
+      const day = fmtLong(session.date).replace(/ \d{4}$/, '').toLowerCase();
+      const names = left.map((p) => shortSurname(p, players)).join(', ');
+      const text = `🏀 ${team?.name ?? ''}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}: ${left.length === 1 ? 'manca ancora la risposta di' : `mancano ancora ${left.length} risposte:`} ${names}.\nTocca il link e rispondi, bastano 10 secondi:`;
+      haptic.select();
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Promemoria RPE', text, url });
+          return;
+        } catch (e) {
+          if ((e as DOMException)?.name === 'AbortError') return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        toast('Promemoria copiato: incollalo nel gruppo', 'success', 3000);
+      } catch {
+        window.prompt('Copia il promemoria', `${text}\n${url}`);
+      }
+    });
+
   const toggle = () =>
     run(async () => {
       const open = session.surveyOpen === false;
@@ -116,6 +148,11 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
             </Button>
           </div>
           <div className="-mb-1 mt-1 flex flex-wrap gap-0.5 pl-4">
+            {session.surveyOpen !== false && missing > 0 && (
+              <button className={small.replace('text-ink-muted', 'text-accent-light')} disabled={busy} onClick={remind}>
+                <BellRing size={14} /> Sollecita ({missing})
+              </button>
+            )}
             <button className={small} onClick={() => void copy()}>
               <Copy size={14} /> Copia
             </button>
