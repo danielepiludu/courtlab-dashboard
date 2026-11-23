@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Num } from '@/components/ui/Num';
 import { Field } from '@/components/ui/misc';
 import type { Player, RpeEntry, TrainingSession } from '@/db/types';
-import { SESSION_TYPE_LABEL } from '@/db/types';
+import { SESSION_TYPES, SESSION_TYPE_LABEL } from '@/db/types';
 import { deleteSession, saveSession, setRpe } from '@/db/rpeRepo';
 import { RPE_SCALE, entryTL } from '@/engine/load';
 import { intColor } from '@/lib/intColor';
@@ -29,7 +29,7 @@ function RpePicker({ player, entry, session, onPick, onClose }: { player: Player
   }, [player, entry]);
   const mins = minutes.trim() === '' ? null : Math.max(0, Number(minutes));
   return (
-    <Sheet open={!!player} onClose={onClose} elevated title={player ? `#${player.number} ${player.name}` : ''} subtitle="Quanto è stato faticoso l'allenamento?">
+    <Sheet open={!!player} onClose={onClose} elevated title={player ? `#${player.number} ${player.name}` : ''} subtitle={session.type === 'partita' ? 'Quanto è stata faticosa la partita?' : "Quanto è stato faticoso l'allenamento?"}>
       <div className="grid gap-1.5">
         {[...RPE_SCALE].reverse().map((s) => {
           const on = entry?.rpe === s.value;
@@ -141,6 +141,20 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
         }
       >
         <fieldset disabled={readOnly} className="min-w-0">
+          <div className="mb-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo di seduta">
+            {SESSION_TYPES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={s.type === t}
+                onClick={() => (haptic.select(), void update({ type: t }))}
+                className={cx('h-11 rounded-xl border text-[14px] font-bold', s.type === t ? 'border-accent bg-accent/20 text-ink' : 'border-line text-ink-muted')}
+              >
+                {SESSION_TYPE_LABEL[t]}
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Data">
               <input type="date" className="input" value={s.date} onChange={(e) => void update({ date: e.target.value })} />

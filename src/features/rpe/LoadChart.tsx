@@ -12,6 +12,8 @@ export interface ChartDay {
   date: string;
   /** barre: TL dell'atleta o TL medio della squadra */
   bar: number | null;
+  /** partita: barra tratteggiata */
+  match?: boolean;
   personal?: number | null;
   team?: number | null;
   wl?: number | null;
@@ -101,6 +103,12 @@ export function LoadPanels({ days, selected, onSelect, barTitle = 'Carico (TL)',
     <div className="relative overflow-hidden rounded-2xl border border-line bg-night/40">
       <div ref={scroller} className="no-scrollbar overflow-x-auto">
         <svg width={Math.max(W, 300)} height={H} className="block select-none" role="img" aria-label="Grafico del carico giorno per giorno">
+          <defs>
+            <pattern id="cl-hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+              <rect width="5" height="5" fill={SERIES.tl} opacity={0.35} />
+              <rect width="2.4" height="5" fill={SERIES.tl} />
+            </pattern>
+          </defs>
           {/* giorno selezionato */}
           {sel && <rect x={cx(selected) - STEP / 2 + 1} y={aTop - 4} width={STEP - 2} height={axisY - aTop + 26} rx={8} fill="rgba(255,255,255,.07)" />}
           {/* griglia */}
@@ -110,7 +118,14 @@ export function LoadPanels({ days, selected, onSelect, barTitle = 'Carico (TL)',
           {/* barre TL */}
           {days.map((d, i) =>
             d.bar != null && d.bar > 0 ? (
-              <path key={`b${d.date}`} d={barPath(cx(i) - BAR_W / 2, yA(d.bar), BAR_W, yA(0) - yA(d.bar))} fill={SERIES.tl} opacity={i === selected ? 1 : 0.78} />
+              <path
+                key={`b${d.date}`}
+                d={barPath(cx(i) - BAR_W / 2, yA(d.bar), BAR_W, yA(0) - yA(d.bar))}
+                fill={d.match ? 'url(#cl-hatch)' : SERIES.tl}
+                stroke={d.match ? SERIES.tl : undefined}
+                strokeWidth={d.match ? 1.2 : undefined}
+                opacity={i === selected ? 1 : 0.82}
+              />
             ) : null,
           )}
           {team && <path d={team} fill="none" stroke={SERIES.team} strokeWidth={2} strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" />}
@@ -193,12 +208,15 @@ export function LoadPanels({ days, selected, onSelect, barTitle = 'Carico (TL)',
 }
 
 /** Legenda: il colore accompagna sempre il nome della serie. */
-export function Legend({ items }: { items: { color: string; label: string; kind: 'bar' | 'line' | 'dash' | 'dot' | 'band' }[] }) {
+export function Legend({ items }: { items: { color: string; label: string; kind: 'bar' | 'hatch' | 'line' | 'dash' | 'dot' | 'band' }[] }) {
   return (
     <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] font-semibold text-ink-muted">
       {items.map((it) => (
         <span key={it.label} className="flex items-center gap-1.5">
           {it.kind === 'bar' && <i className="h-3 w-2.5 rounded-t-[3px]" style={{ background: it.color }} />}
+          {it.kind === 'hatch' && (
+            <i className="h-3 w-2.5 rounded-t-[3px]" style={{ border: `1px solid ${it.color}`, background: `repeating-linear-gradient(45deg, ${it.color} 0 2px, transparent 2px 4px)` }} />
+          )}
           {it.kind === 'line' && <i className="h-[2px] w-4 rounded" style={{ background: it.color }} />}
           {it.kind === 'dash' && <i className="w-4 border-t-2 border-dashed" style={{ borderColor: it.color }} />}
           {it.kind === 'dot' && <i className="h-2.5 w-2.5 rounded-full" style={{ background: it.color }} />}

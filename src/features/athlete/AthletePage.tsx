@@ -213,7 +213,7 @@ export default function AthletePage({ token }: { token: string }) {
             </div>
           </div>
         </div>
-        <h1 className="mb-4 font-display text-[30px] font-bold leading-tight">Quanto è stato faticoso l'allenamento?</h1>
+        <h1 className="mb-4 font-display text-[30px] font-bold leading-tight">{/partita/i.test(s.session_label) ? 'Quanto è stata faticosa la partita?' : "Quanto è stato faticoso l'allenamento?"}</h1>
         <div className="grid gap-2">
           {[...RPE_SCALE].reverse().map((x) => {
             const on = rpe === x.value;

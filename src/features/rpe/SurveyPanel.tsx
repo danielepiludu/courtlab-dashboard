@@ -44,7 +44,8 @@ export function SurveyPanel({ session, players }: { session: TrainingSession; pl
 
   const message = () => {
     const day = fmtLong(session.date).replace(/ \d{4}$/, '').toLowerCase();
-    return `🏀 ${team?.name ?? 'Allenamento'}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}.\nTocca il link, scegli il tuo nome e indica quanto è stato faticoso:`;
+    const what = session.type === 'partita' ? 'quanto è stata faticosa la partita' : "quanto è stato faticoso l'allenamento";
+    return `🏀 ${team?.name ?? 'Allenamento'}\nRPE ${SESSION_TYPE_LABEL[session.type].toLowerCase()} di ${day}.\nTocca il link, scegli il tuo nome e indica ${what}:`;
   };
 
   const share = async (link = url) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, FileDown, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Num } from '@/components/ui/Num';
 import { SectionTitle } from '@/components/ui/misc';
@@ -9,6 +9,15 @@ import { fmtLong, fmtMedium } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { Legend, LoadPanels, SERIES, WlGauge, ZONE_COLOR } from './LoadChart';
+import type { MatchLoad } from './loadReport';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/db/db';
+import { useGames } from '@/db/hooks';
+import { useUI } from '@/store/ui';
+import { summarize } from '@/features/report/reportModel';
+import { mmss } from '@/features/live/liveModel';
+import { fmtInt } from '@/engine/int';
+import { intColor } from '@/lib/intColor';
 
 type Zone = 'high' | 'ok' | 'low';
 const fmt = (v: number | null | undefined, d = 0) => (v == null ? '–' : v.toFixed(d).replace('.', ','));
@@ -70,7 +79,26 @@ function WindowControl({ windowDays, onChange }: { windowDays: number; onChange:
   );
 }
 
-export function LoadAnalysis({ players, entries, windowDays, onWindowChange }: { players: Player[]; entries: LoadEntry<number>[]; windowDays: number; onWindowChange: (d: number) => void }) {
+export function LoadAnalysis({
+  players,
+  entries,
+  windowDays,
+  onWindowChange,
+  matchDates,
+  onExport,
+}: {
+  players: Player[];
+  entries: LoadEntry<number>[];
+  windowDays: number;
+  onWindowChange: (d: number) => void;
+  /** date delle sedute di tipo Partita (barre tratteggiate) */
+  matchDates?: Set<string>;
+  /** apre il report/export (con l'atleta selezionato, se c'è) */
+  onExport?: (athleteId?: number) => void;
+}) {
+  const isMatch = (date: string) => !!matchDates?.has(date);
+  const hasMatches = !!matchDates?.size;
+  const games = useAthleteGames();
   const [athlete, setAthlete] = useState<number | null>(null);
   const [filter, setFilter] = useState<Zone | null>(null);
   const [day, setDay] = useState<number>(-1);
@@ -118,6 +146,11 @@ export function LoadAnalysis({ players, entries, windowDays, onWindowChange }: {
     return (
       <>
         <WindowControl windowDays={windowDays} onChange={onWindowChange} />
+        {onExport && (
+          <Button className="mt-2 w-full" icon={<FileDown size={18} />} onClick={() => onExport()}>
+            Report PDF ed Excel
+          </Button>
+        )}
 
         <SectionTitle>Squadra oggi</SectionTitle>
         <div className="grid grid-cols-3 gap-2">
@@ -156,11 +189,12 @@ export function LoadAnalysis({ players, entries, windowDays, onWindowChange }: {
         )}
         <Legend
           items={[
-            { color: SERIES.tl, label: 'TL medio del giorno', kind: 'bar' },
-            { color: SERIES.team, label: `Media squadra ${windowDays} gg`, kind: 'dash' },
+            { color: SERIES.tl, label: 'TL medio del giorno', kind: 'bar' as const },
+            ...(hasMatches ? [{ color: SERIES.tl, label: 'Partita', kind: 'hatch' as const }] : []),
+            { color: SERIES.team, label: `Media squadra ${windowDays} gg`, kind: 'dash' as const },
           ]}
         />
-        <LoadPanels days={team.map((d) => ({ date: d.date, bar: d.avg, team: d.teamRol }))} selected={di} onSelect={pick} barTitle="TL medio" />
+        <LoadPanels days={team.map((d) => ({ date: d.date, bar: d.avg, team: d.teamRol, match: isMatch(d.date) }))} selected={di} onSelect={pick} barTitle="TL medio" />
 
         <SectionTitle right={filter && <button onClick={() => setFilter(null)} className="h-8 rounded-full px-3 text-sm font-bold text-accent-light">Mostra tutti</button>}>
           Atleti · Work Load
@@ -214,6 +248,11 @@ export function LoadAnalysis({ players, entries, windowDays, onWindowChange }: {
           </b>
           <span className="text-[12px] text-ink-muted">Media mobile su {windowDays} giorni</span>
         </div>
+        {onExport && (
+          <button onClick={() => onExport(selected.id)} aria-label="Report PDF dell'atleta" className="grid h-11 w-11 place-items-center rounded-full bg-white/5 text-accent-light active:scale-90">
+            <FileDown size={20} />
+          </button>
+        )}
       </div>
       <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4">
         {rows.map(({ p }) => (
@@ -244,13 +283,15 @@ export function LoadAnalysis({ players, entries, windowDays, onWindowChange }: {
       )}
       <Legend
         items={[
-          { color: SERIES.tl, label: 'TL', kind: 'bar' },
-          { color: SERIES.personal, label: 'Media personale', kind: 'line' },
-          { color: SERIES.team, label: 'Media squadra', kind: 'dash' },
-          { color: ZONE_COLOR.ok, label: `Zona ${lim(LOAD_CONFIG.lowerLimit)}–${lim(LOAD_CONFIG.upperLimit)}`, kind: 'band' },
+          { color: SERIES.tl, label: 'TL', kind: 'bar' as const },
+          ...(hasMatches ? [{ color: SERIES.tl, label: 'Partita', kind: 'hatch' as const }] : []),
+          { color: SERIES.personal, label: 'Media personale', kind: 'line' as const },
+          { color: SERIES.team, label: 'Media squadra', kind: 'dash' as const },
+          { color: ZONE_COLOR.ok, label: `Zona ${lim(LOAD_CONFIG.lowerLimit)}–${lim(LOAD_CONFIG.upperLimit)}`, kind: 'band' as const },
         ]}
       />
-      <LoadPanels days={selSeries.map((x) => ({ date: x.date, bar: x.tl, personal: x.rolAvg, team: x.teamRol, wl: x.acwr }))} selected={di} onSelect={pick} />
+      <LoadPanels days={selSeries.map((x) => ({ date: x.date, bar: x.tl, match: isMatch(x.date), personal: x.rolAvg, team: x.teamRol, wl: x.acwr }))} selected={di} onSelect={pick} />
+      <AthleteGames games={games.get(selected.id!) ?? []} />
 
       <SectionTitle>Giorno per giorno</SectionTitle>
       <div className="overflow-hidden rounded-2xl border border-line">
@@ -299,5 +340,59 @@ function Explain({ windowDays }: { windowDays: number }) {
       TL = RPE × minuti. Media personale = media dei TL dell'atleta negli ultimi {windowDays} giorni; media squadra = media di tutti i TL della squadra nello stesso periodo; Work Load = TL
       del giorno ÷ media personale (senza allenamento resta il valore precedente). Formule identiche al foglio sRPE.
     </p>
+  );
+}
+
+/** Minuti e INT delle partite monitorate con la schermata live, per atleta (dalla più recente). */
+function useAthleteGames(): Map<number, MatchLoad[]> {
+  const teamId = useUI((x) => x.activeTeamId);
+  const games = useGames();
+  const reports = useLiveQuery(async () => (teamId == null ? [] : db.reports.where('teamId').equals(teamId).toArray()), [teamId]);
+  return useMemo(() => {
+    const m = new Map<number, MatchLoad[]>();
+    const byId = new Map((games ?? []).map((g) => [g.id, g]));
+    for (const r of reports ?? []) {
+      const g = byId.get(r.gameId);
+      if (!g) continue;
+      try {
+        for (const p of summarize(r).players) {
+          const list = m.get(p.id) ?? [];
+          list.push({ date: g.date, opponent: g.opponent, playedMs: p.playedMs, intAvg: Number.isFinite(p.intAvg) ? p.intAvg : null, intPeak: p.intPeak });
+          m.set(p.id, list);
+        }
+      } catch {
+        /* resoconto non leggibile: si salta */
+      }
+    }
+    for (const list of m.values()) list.sort((a, b) => b.date.localeCompare(a.date));
+    return m;
+  }, [games, reports]);
+}
+
+function AthleteGames({ games }: { games: MatchLoad[] }) {
+  if (!games.length) return null;
+  const shown = games.slice(0, 6);
+  return (
+    <>
+      <SectionTitle>Partite monitorate</SectionTitle>
+      <div className="overflow-hidden rounded-2xl border border-line">
+        {shown.map((g) => (
+          <div key={g.date + g.opponent} className="flex items-center gap-3 border-t border-line/60 px-3 py-2 first:border-t-0">
+            <div className="min-w-0 flex-1">
+              <b className="block truncate text-[14px]">vs {g.opponent}</b>
+              <span className="text-[12px] text-ink-muted">{fmtMedium(g.date)}</span>
+            </div>
+            <div className="text-right">
+              <Num value={g.playedMs ? mmss(g.playedMs) : '–'} className="text-[18px]" />
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">minuti</div>
+            </div>
+            <div className="w-16 text-right">
+              <Num value={g.intAvg == null ? '–' : fmtInt(g.intAvg)} className="text-[18px]" style={{ color: g.intAvg == null ? undefined : intColor(g.intAvg) }} />
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">INT medio</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
