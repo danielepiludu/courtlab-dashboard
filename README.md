@@ -19,6 +19,8 @@ React + TypeScript + Vite · Tailwind · Zustand · Dexie (IndexedDB) · vite-pl
 
 ## Schermata partita
 
+- Le partite si possono iniziare solo dal loro giorno: quelle future compaiono con un lucchetto (in Home e nella scelta della partita) e non si selezionano; restano selezionabili quelle di oggi e quelle passate non giocate.
+
 - Mezzo campo FIBA **verticale** (canestro in alto) su **parquet**: il bordo campo ha il colore della squadra e, ai lati, il **logo della squadra attiva**; quando c'è spazio in altezza (tablet) compare anche il cerchio di centrocampo col logo. Pitturato nel colore della squadra con bordo d'accento.
 - 5 in campo: 2 lunghi nel pitturato (sotto al ferro, che resta visibile), 3 esterni fuori dall'arco (punta e ali). Le posizioni sono verificate da test (mai sovrapposte).
 - **Panchina** a sinistra, stretta, con schede su 2 colonne: minuti giocati e tempo reale in panchina, che scorre anche a cronometro fermo.

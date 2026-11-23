@@ -4,7 +4,7 @@
  */
 export const APP = {
   name: 'Courtlab',
-  version: '2.3.1',
+  version: '2.3.2',
   author: 'Daniele Piludu',
   credit: 'powered by Daniele Piludu',
 } as const;

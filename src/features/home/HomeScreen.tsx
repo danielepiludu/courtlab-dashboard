@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarPlus, ChevronDown, CirclePlay, MapPin, Plane, Plus, Settings } from 'lucide-react';
+import { CalendarPlus, ChevronDown, CirclePlay, Lock, MapPin, Plane, Plus, Settings } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { Button } from '@/components/ui/Button';
@@ -8,7 +8,7 @@ import { TeamLogo } from '@/components/TeamLogo';
 import { useActiveTeam, useGames } from '@/db/hooks';
 import { newGame } from '@/db/repo';
 import { type Game } from '@/db/types';
-import { fmtLong, parseISODate, relativeDay, todayISO } from '@/lib/dates';
+import { fmtLong, parseISODate, relativeDay, todayISO, canStartOn } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { useSetup, useUI } from '@/store/ui';
 import { TeamSwitcherSheet } from '@/features/teams/TeamSwitcherSheet';
@@ -46,11 +46,16 @@ function NextGameCard({ game, onPrepare, onOpen, readOnly }: { game: Game; onPre
             · {game.home ? <MapPin size={14} /> : <Plane size={14} />} {game.home ? 'Casa' : 'Trasferta'}
           </span>
         </div>
-        {!readOnly && (
-          <Button variant="primary" size="lg" className="mt-4 w-full" icon={<CirclePlay size={22} />} onClick={onPrepare}>
-            Prepara la partita
-          </Button>
-        )}
+        {!readOnly &&
+          (canStartOn(game.date) ? (
+            <Button variant="primary" size="lg" className="mt-4 w-full" icon={<CirclePlay size={22} />} onClick={onPrepare}>
+              Prepara la partita
+            </Button>
+          ) : (
+            <div className="mt-4 flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/[.06] text-[14px] font-semibold text-ink-muted">
+              <Lock size={16} /> Si potrà iniziare {rel.toLowerCase().startsWith('tra') ? fmtLong(game.date, false).toLowerCase() : rel.toLowerCase()}
+            </div>
+          ))}
       </div>
     </div>
   );

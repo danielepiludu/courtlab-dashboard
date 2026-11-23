@@ -50,3 +50,6 @@ export function relativeDay(iso: string): string {
   if (n > 1) return `Tra ${n} giorni`;
   return `${-n} giorni fa`;
 }
+
+/** Una partita si può iniziare solo dal suo giorno in poi (non in anticipo). */
+export const canStartOn = (iso: string) => iso <= todayISO();
