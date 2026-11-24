@@ -205,7 +205,7 @@ export default function AthletePage({ token }: { token: string }) {
     <Shell>
       {header}
       <section className="px-5 pb-36">
-        <button onClick={() => setMe(null)} className="mb-3 flex items-center gap-1 text-[14px] font-semibold text-ink-muted">
+        <button onClick={() => setMe(null)} className="-ml-1 mb-2 flex h-10 items-center gap-1 rounded-lg px-1 text-[14px] font-semibold text-ink-muted active:bg-white/5">
           <ChevronLeft size={18} /> Non sei {shortSurname(me, s.roster)}? Cambia
         </button>
         <div className="mb-3 flex items-center gap-3">

@@ -173,6 +173,12 @@
       display: none;
     }
   }
+  /* telefono in orizzontale: la barra "Inizia partita" scorre con la pagina invece di coprire lo schermo */
+  @media (max-height: 480px) {
+    .setup-cta {
+      position: static;
+    }
+  }
   @media (hover: hover) and (pointer: fine) {
     .no-scrollbar {
       scrollbar-width: thin;

@@ -77,13 +77,13 @@ function CallTile({ p, all, called, disabled, onClick }: { p: Player; all: Playe
       disabled={disabled}
       onClick={onClick}
       className={cx(
-        'pressable relative flex items-center gap-3 rounded-2xl border p-2.5 text-left transition-shadow disabled:active:scale-100',
+        'pressable relative flex items-center gap-2.5 rounded-2xl border p-2.5 text-left transition-shadow disabled:active:scale-100',
         called ? 'border-accent bg-accent/10 shadow-glow' : 'border-line bg-surface',
         disabled && 'opacity-45',
       )}
     >
       <div className="relative shrink-0">
-        <Avatar player={p} size={48} />
+        <Avatar player={p} size={44} />
         <span
           className={cx(
             'absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 transition',
@@ -94,9 +94,9 @@ function CallTile({ p, all, called, disabled, onClick }: { p: Player; all: Playe
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <b className="block truncate text-[15px] leading-tight">{shortSurname(p, all)}</b>
+        <b className="block truncate text-[14px] leading-tight">{shortSurname(p, all)}</b>
         <div className="mt-1 flex items-center gap-1.5">
-          <span className="font-display text-[16px] font-bold leading-none text-brand-text">{p.number !== '' ? `#${p.number}` : '–'}</span>
+          {p.number !== '' && <span className="font-display text-[16px] font-bold leading-none text-brand-text">#{p.number}</span>}
           <RoleBadge role={p.role} className="h-5 min-w-[28px] text-[12px]" />
           {p.status !== 'available' && <i className={cx('h-2 w-2 shrink-0 rounded-full', STATUS_META[p.status].dot)} title={STATUS_META[p.status].label} />}
         </div>
@@ -230,7 +230,7 @@ export function MatchSetupScreen() {
         </div>
       ) : (
       <>
-      <div className="mx-auto max-w-2xl px-4 pb-32">
+      <div className="mx-auto max-w-2xl px-4 pb-32 [@media(max-height:480px)]:pb-2">
         {/* 1 · Partita */}
         <StepTitle
           n={1}
@@ -311,7 +311,7 @@ export function MatchSetupScreen() {
               ))}
             </div>
             {injuredCount > 0 && (
-              <label className="mt-3 flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border border-line bg-surface/60 px-4">
+              <label className="relative mt-3 flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border border-line bg-surface/60 px-4">
                 <span className="flex-1 text-[14px] text-ink-muted">
                   <b className="text-danger">{injuredCount} infortunat{injuredCount === 1 ? 'o' : 'i'}</b> — consenti la convocazione
                 </span>
@@ -375,7 +375,7 @@ export function MatchSetupScreen() {
       </div>
 
       {/* Barra azione */}
-      <div className="fixed inset-x-0 z-30" style={{ bottom: 'calc(var(--tabbar-h) + var(--safe-bottom))' }}>
+      <div className="setup-cta fixed inset-x-0 z-30" style={{ bottom: 'calc(var(--tabbar-h) + var(--safe-bottom))' }}>
         <div className="mx-auto max-w-2xl bg-gradient-to-t from-night via-night/95 to-transparent px-4 pb-3 pt-6">
           <Button
             variant="primary"

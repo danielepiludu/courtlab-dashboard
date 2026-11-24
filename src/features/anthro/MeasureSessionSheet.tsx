@@ -21,6 +21,13 @@ const parseNum = (s: string) => {
   return Number.isFinite(n) ? n : undefined;
 };
 /** Valore molto diverso dalla misura precedente: probabile errore di battitura. */
+/** Porta il campo al centro dello schermo (sopra la tastiera) e lo attiva. */
+const focusField = (el: HTMLInputElement | null | undefined) => {
+  if (!el) return false;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return true;
+};
 const suspicious = (v: number | undefined, prev: number | undefined) => v != null && prev != null && prev > 0 && Math.abs(v - prev) / prev > 0.1;
 
 /** Campi della rilevazione (scelti dallo staff); di default tutte le misure. */
@@ -136,9 +143,7 @@ function FastAthlete({
   useEffect(() => setNote(mine?.note ?? ''), [player?.id, mine?.note]);
 
   const focusAt = (i: number) => {
-    const el = refs.current[i];
-    if (el) el.focus();
-    else nextAthlete();
+    if (!focusField(refs.current[i])) nextAthlete();
   };
   const nextAthlete = () => {
     if (index == null) return;
@@ -167,7 +172,7 @@ function FastAthlete({
           {defs.some((d) => prevOf(player.id!, d.id) != null) && (
             <button
               type="button"
-              className="ml-1.5 rounded bg-white/[.07] px-1.5 font-semibold text-accent-light"
+              className="ml-1.5 inline-flex h-7 items-center rounded-md bg-white/[.07] px-2 text-[12px] font-semibold text-accent-light active:bg-white/[.12]"
               onClick={() => {
                 for (const d of defs) {
                   const pv = prevOf(player.id!, d.id);
@@ -293,7 +298,7 @@ function StationMode({ session, players, measures, prevOf }: { session: MeasureS
         {done > 0 && (
           <button
             type="button"
-            className="shrink-0 text-[13px] font-semibold text-danger"
+            className="-mr-2 h-9 shrink-0 rounded-lg px-2 text-[13px] font-semibold text-danger active:bg-danger/10"
             onClick={async () => {
               const ok = await confirmDialog({ title: `Svuotare ${def.short}?`, message: `Verranno tolti i valori di ${def.label} di ${done} atleti in questa rilevazione (es. test non eseguito).`, confirmLabel: 'Svuota', danger: true });
               if (!ok) return;
@@ -313,7 +318,7 @@ function StationMode({ session, players, measures, prevOf }: { session: MeasureS
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] font-semibold">{surnameFirst(p.name)}</div>
                 {prev != null && (
-                  <button type="button" className="text-[11px] font-semibold text-accent-light" onClick={() => (haptic.tap(), void setMeasureValue(session, p.id!, def.id, prev))}>
+                  <button type="button" className="mt-0.5 inline-flex h-7 items-center rounded-md bg-white/[.07] px-2 text-[12px] font-semibold text-accent-light active:bg-white/[.12]" onClick={() => (haptic.tap(), void setMeasureValue(session, p.id!, def.id, prev))}>
                     = {fmtMeasure(prev, def)}
                   </button>
                 )}
@@ -325,7 +330,7 @@ function StationMode({ session, players, measures, prevOf }: { session: MeasureS
                   prev={prev}
                   inputRef={(el) => (refs.current[i] = el)}
                   onCommit={(v) => void setMeasureValue(session, p.id!, def.id, v)}
-                  onNext={() => refs.current[i + 1]?.focus()}
+                  onNext={() => focusField(refs.current[i + 1])}
                 />
               </div>
             </div>

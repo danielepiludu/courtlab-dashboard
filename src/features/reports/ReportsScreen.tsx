@@ -10,20 +10,19 @@ import { fmtMedium } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { cx } from '@/lib/cx';
 import { useUI } from '@/store/ui';
-import { OutcomePill } from '../home/GameRow';
 import { askDeleteGame } from '../report/deleteGame';
 
 function ReportRow({ g, hasData, onClick }: { g: Game; hasData: boolean; onClick: () => void }) {
   const o = outcomeOf(g);
   return (
-    <button onClick={onClick} className="card pressable relative flex w-full items-center gap-3 overflow-hidden p-3.5 pl-5 text-left">
+    <button onClick={onClick} className="card pressable relative flex w-full items-center gap-2.5 overflow-hidden p-3.5 pl-5 text-left">
       <span className={cx('absolute inset-y-0 left-0 w-1.5', o === 'W' ? 'bg-ok' : o === 'L' ? 'bg-brand' : 'bg-ink-faint')} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-ink-muted">
           {fmtMedium(g.date)}
           {g.home ? <MapPin size={12} /> : <Plane size={12} />}
         </div>
-        <div className="mt-0.5 truncate text-[18px] font-bold">
+        <div className="mt-0.5 line-clamp-2 text-[17px] font-bold leading-tight">
           <span className="mr-1 text-ink-muted">{g.home ? 'vs' : '@'}</span>
           {g.opponent}
         </div>
@@ -38,11 +37,10 @@ function ReportRow({ g, hasData, onClick }: { g: Game; hasData: boolean; onClick
       </div>
       <div className="flex items-baseline gap-1">
         {/* sempre "noi – loro" */}
-        <Num value={g.scoreUs ?? 0} className="text-[30px]" />
+        <Num value={g.scoreUs ?? 0} className="text-[26px]" />
         <span className="text-ink-faint">–</span>
-        <Num value={g.scoreThem ?? 0} className="text-[30px] text-ink-muted" />
+        <Num value={g.scoreThem ?? 0} className="text-[26px] text-ink-muted" />
       </div>
-      <OutcomePill game={g} />
       <ChevronRight size={18} className="-ml-1 text-ink-faint" />
     </button>
   );

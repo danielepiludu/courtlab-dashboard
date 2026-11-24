@@ -113,7 +113,7 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
           {/* onda luminosa dietro al numero */}
           {flash > 0 && <span key={flash} className={cx('score-ring pointer-events-none absolute inset-[-10px] rounded-full', accent ? 'bg-brand/50' : 'bg-white/30')} />}
           <span key={score} className="score-roll pointer-events-none relative">
-            <Num value={score} className="text-[38px] [@media(min-height:600px)]:text-[48px]" />
+            <Num value={score} className="text-[38px] [@media(max-width:760px)]:text-[32px] [@media(min-height:600px)]:text-[48px]" />
           </span>
           {/* +N / −N che sale accanto al punteggio */}
           {pops.map((p) => (
@@ -145,7 +145,7 @@ function ScoreBlock({ label, score, logo, accent, onAdd }: { label: ReactNode; s
               haptic.select();
               onAdd(n);
             }}
-            className="h-11 w-12 rounded-xl border border-white/10 bg-white/[.07] font-display text-[17px] font-bold transition active:scale-90 active:bg-white/20"
+            className="h-11 w-12 rounded-xl border border-white/10 bg-white/[.07] font-display text-[17px] font-bold transition active:scale-90 active:bg-white/20 [@media(max-width:760px)]:w-10 [@media(max-width:760px)]:text-[16px]"
           >
             +{n}
           </button>
@@ -304,11 +304,11 @@ export function LiveScreen() {
 
       {/* ---------- Header ---------- */}
       <header
-        className="flex h-[96px] shrink-0 items-center gap-3 border-b border-white/5 bg-bar px-3 shadow-[0_10px_30px_-18px_rgba(0,0,0,.9)] [@media(min-height:600px)]:h-[116px] [@media(min-height:600px)]:px-5"
+        className="flex h-[96px] shrink-0 items-center gap-3 [@media(max-width:760px)]:gap-1.5 border-b border-white/5 bg-bar px-3 shadow-[0_10px_30px_-18px_rgba(0,0,0,.9)] [@media(min-height:600px)]:h-[116px] [@media(min-height:600px)]:px-5"
         style={{ paddingLeft: 'max(12px, env(safe-area-inset-left))', paddingRight: 'max(12px, env(safe-area-inset-right))' }}
       >
         {/* Periodo + cronometro + ±5 s + Start/Stop. Tenendo premuto il cronometro si apre la vista debug INT. */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 [@media(max-width:760px)]:gap-1.5">
           <div className="flex flex-col items-center gap-1">
             <div
               className="flex items-center gap-2"
@@ -341,7 +341,7 @@ export function LiveScreen() {
                 )}
                 style={v.running ? { textShadow: '0 0 18px rgba(255,255,255,.35)' } : undefined}
               >
-                <Num value={mmss(v.remainingMs, 'ceil')} className="text-[38px] [@media(min-height:600px)]:text-[52px]" />
+                <Num value={mmss(v.remainingMs, 'ceil')} className="text-[38px] [@media(max-width:760px)]:text-[32px] [@media(min-height:600px)]:text-[52px]" />
               </span>
             </div>
             <div className="flex gap-1.5">
@@ -352,7 +352,7 @@ export function LiveScreen() {
           <button
             onClick={toggle}
             className={cx(
-              'flex h-[72px] min-w-[80px] flex-col items-center justify-center rounded-2xl px-3 font-display text-[15px] font-bold leading-none transition active:scale-95 [@media(min-height:600px)]:h-[84px] [@media(min-height:600px)]:min-w-[100px]',
+              'flex h-[72px] min-w-[80px] flex-col items-center justify-center rounded-2xl px-3 [@media(max-width:760px)]:min-w-[60px] [@media(max-width:760px)]:px-2 font-display text-[15px] font-bold leading-none transition active:scale-95 [@media(min-height:600px)]:h-[84px] [@media(min-height:600px)]:min-w-[100px]',
               v.running ? 'border border-white/15 bg-surface-3 text-ink' : over ? 'bg-brand text-on-brand shadow-brand' : 'bg-accent text-on-accent shadow-select',
             )}
           >
@@ -362,7 +362,7 @@ export function LiveScreen() {
         </div>
 
         {/* Punteggio */}
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-2 [@media(min-width:900px)]:gap-4">
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2 [@media(max-width:760px)]:gap-1 [@media(min-width:900px)]:gap-4">
           <ScoreBlock label={team?.name} accent score={v.us} logo={<TeamLogo team={team} size={28} />} onAdd={(n) => update((s, t) => addScore(s, 'us', n, t))} />
           <button
             disabled={!v.scoreLog.length}
@@ -373,7 +373,7 @@ export function LiveScreen() {
               if (last) toast(`Annullato +${last.pts} ${last.side === 'us' ? (team?.name ?? '') : v.opponent}`, 'info', 1800);
             }}
             aria-label="Annulla ultimo punteggio"
-            className="mt-[38px] grid h-11 w-11 shrink-0 place-items-center rounded-xl text-ink-muted transition active:scale-90 disabled:opacity-25 [@media(min-height:600px)]:mt-[48px]"
+            className="mt-[38px] grid h-11 w-11 shrink-0 place-items-center rounded-xl text-ink-muted transition active:scale-90 disabled:opacity-25 [@media(max-width:760px)]:w-8 [@media(min-height:600px)]:mt-[48px]"
           >
             <RotateCcw size={20} />
           </button>
@@ -388,10 +388,10 @@ export function LiveScreen() {
 
         {/* Menu + Termina */}
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setMenu(true)} aria-label="Menu partita" className="grid h-11 w-11 place-items-center rounded-xl text-ink-muted active:scale-90">
+          <button onClick={() => setMenu(true)} aria-label="Menu partita" className="grid h-11 w-11 place-items-center rounded-xl text-ink-muted active:scale-90 [@media(max-width:760px)]:w-8">
             <EllipsisVertical size={22} />
           </button>
-          <Button variant="primary" className="h-12 px-3.5 text-[15px] leading-tight" icon={<Square size={16} fill="currentColor" />} onClick={terminate}>
+          <Button variant="primary" className="h-12 px-3.5 text-[15px] leading-tight [@media(max-width:760px)]:px-2.5 [@media(max-width:760px)]:text-[14px]" icon={<Square size={16} fill="currentColor" />} onClick={terminate}>
             <span className="text-left">
               Termina
               <br className="[@media(min-width:1000px)]:hidden" /> partita

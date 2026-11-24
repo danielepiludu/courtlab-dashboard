@@ -175,12 +175,14 @@ export function LoadAnalysis({
                 key={z}
                 onClick={() => (haptic.tap(), setFilter(on ? null : z))}
                 aria-pressed={on}
-                className={cx('flex items-center gap-2 rounded-xl px-2.5 py-2 text-left transition active:scale-95', on ? 'ring-1' : 'bg-surface')}
+                className={cx('flex min-w-0 flex-col items-start gap-1 rounded-xl px-2.5 py-2 text-left transition active:scale-95', on ? 'ring-1' : 'bg-surface')}
                 style={on ? { background: `color-mix(in srgb, ${color} 16%, transparent)`, ['--tw-ring-color' as string]: color } : undefined}
               >
-                <Icon size={16} strokeWidth={3} style={{ color }} className="shrink-0" />
-                <Num value={counts[z]} className="text-[22px] leading-none" />
-                <span className="truncate text-[11px] font-semibold text-ink-muted">{label}</span>
+                <span className="flex items-center gap-1.5">
+                  <Icon size={16} strokeWidth={3} style={{ color }} className="shrink-0" />
+                  <Num value={counts[z]} className="text-[22px] leading-none" />
+                </span>
+                <span className="whitespace-nowrap text-[11px] font-semibold text-ink-muted">{label}</span>
               </button>
             );
           })}
