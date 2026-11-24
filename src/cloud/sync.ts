@@ -32,6 +32,8 @@ interface SyncState {
   cursor: string | null;
   /** impronta di ogni elemento all'ultima sincronizzazione */
   hashes: Record<string, Record<string, string>>;
+  /** tipi di dati gestiti dall'app all'ultimo download: se l'app ne aggiunge, si riscarica tutto */
+  kinds?: string[];
 }
 
 interface RemoteRow {
@@ -47,6 +49,10 @@ const STATE_KEY = SYNC_STATE_KEY;
 const OVERLAP_MS = 60_000;
 const PAGE = 500;
 const MAX_BATCH_CHARS = 900_000;
+
+/** Una versione precedente dell'app ignorava i tipi che non conosceva (es. le misure) ma andava avanti col cursore. */
+const kindsChanged = (state: SyncState) => SYNC_KINDS.some((k) => !state.kinds?.includes(k));
+let forceFull = false;
 
 const keyOf = (kind: SyncKind, rec: Record<string, unknown>) => String(kind === 'reports' ? rec.gameId : rec.id);
 
@@ -182,6 +188,7 @@ async function pull(state: SyncState, full = false): Promise<number> {
     if (rows.length < PAGE) break;
   }
   state.cursor = maxAt;
+  state.kinds = [...SYNC_KINDS];
   await saveState(state);
   return applied;
 }
@@ -300,7 +307,9 @@ async function runOnce(): Promise<void> {
       fresh = true;
     }
     const pushed = await push(state);
-    const applied = await pull(state, fresh || pushed === null || (pushed?.rejected ?? 0) > 0);
+    const full = fresh || forceFull || kindsChanged(state) || pushed === null || (pushed?.rejected ?? 0) > 0;
+    const applied = await pull(state, full);
+    forceFull = false;
     if (fresh || applied) await fixActiveTeam();
     if (useSync.getState().firstRun) {
       set({ firstRun: false });
@@ -352,5 +361,7 @@ export function initSync() {
 /** Riprova dopo un rifiuto o un errore (pulsante "Sincronizza ora"). */
 export function retrySync() {
   declined = false;
+  // a mano: riscarica tutto dal cloud (i dati già uguali vengono saltati)
+  forceFull = true;
   return syncNow();
 }
