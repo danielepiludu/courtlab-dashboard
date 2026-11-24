@@ -9,13 +9,17 @@ interface AvatarProps {
 }
 
 /** Foto circolare del giocatore; senza foto mostra le iniziali. */
-export function Avatar({ player, size = 52, className, ring }: AvatarProps) {
-  const initials = player.name
+/** Iniziali di nome e cognome (es. "Federico Fontana" → "FF"). */
+export const initialsOf = (name: string) =>
+  name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join('');
+
+export function Avatar({ player, size = 52, className, ring }: AvatarProps) {
+  const initials = initialsOf(player.name);
   return (
     <div
       style={{ width: size, height: size }}

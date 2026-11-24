@@ -6,6 +6,7 @@ import { Clock3, FileDown, MapPin, Plane, Repeat, Share2, Timer, Trash, Trending
 import { Button } from '@/components/ui/Button';
 import { Segmented } from '@/components/ui/Chip';
 import { Num } from '@/components/ui/Num';
+import { initialsOf } from '@/components/ui/Avatar';
 import { TeamLogo } from '@/components/TeamLogo';
 import { useMountTransition } from '@/components/ui/Sheet';
 import { db } from '@/db/db';
@@ -32,7 +33,7 @@ function Leader({ icon, label, p, value, photo }: { icon: React.ReactNode; label
     <div className="card flex min-w-0 items-center gap-3 p-3">
       <div className="relative shrink-0">
         <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-bar to-surface-3 font-display text-lg font-bold ring-2 ring-white/10">
-          {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : p ? p.number : '–'}
+          {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : p ? initialsOf(p.name) || p.number : '–'}
         </div>
         <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-accent text-on-accent ring-2 ring-surface">{icon}</span>
       </div>
@@ -53,7 +54,7 @@ function PlayerRow({ p, photo, durationMs, marks, spans }: { p: PlayerSummary; p
       <div className="flex min-w-0 items-center gap-3">
         <div className="relative shrink-0">
           <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-bar to-surface-3 font-display font-bold ring-2 ring-white/10">
-            {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : p.name.slice(0, 2).toUpperCase()}
+            {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : initialsOf(p.name) || p.number}
           </div>
           <span className="absolute -bottom-1 -right-1.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand px-1 font-display text-[13px] font-extrabold leading-none text-on-brand ring-2 ring-surface">{p.number || '–'}</span>
         </div>

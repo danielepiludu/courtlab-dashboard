@@ -26,12 +26,12 @@ const valueOf = (m: AthleteMeasures | undefined, id: string): number | null => {
 };
 
 /** Mini-grafico dei valori nelle rilevazioni. */
-function Spark({ values }: { values: (number | null)[] }) {
+function Spark({ values, width = 64 }: { values: (number | null)[]; width?: number }) {
   const pts = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v != null);
-  if (pts.length < 2) return <span className="w-16" />;
+  if (pts.length < 2) return <span style={{ width }} />;
   const min = Math.min(...pts.map((p) => p.v));
   const max = Math.max(...pts.map((p) => p.v));
-  const W = 64;
+  const W = width;
   const H = 22;
   const x = (i: number) => 3 + (i / Math.max(1, values.length - 1)) * (W - 6);
   const y = (v: number) => (max === min ? H / 2 : H - 3 - ((v - min) / (max - min)) * (H - 6));
@@ -71,7 +71,7 @@ function AthleteSheet({ player, sessions, measures, onClose }: { player: Player 
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl bg-surface">
-            <div className="grid grid-cols-[1fr_64px_62px_52px_52px] items-center gap-2 px-3 pb-1 pt-2.5 text-[11px] font-semibold text-ink-muted">
+            <div className="grid grid-cols-[minmax(0,1fr)_44px_54px_48px_48px] items-center gap-1.5 px-3 pb-1 pt-2.5 text-[11px] font-semibold text-ink-muted">
               <span>Misura</span>
               <span />
               <span className="text-right">Ultima</span>
@@ -82,11 +82,12 @@ function AthleteSheet({ player, sessions, measures, onClose }: { player: Player 
               const pts = series(m.id);
               const d = deltas(asc.map((s, i) => ({ date: s.date, sessionId: s.id!, value: pts[i] })));
               return (
-                <div key={m.id} className="grid grid-cols-[1fr_64px_62px_52px_52px] items-center gap-2 border-t border-white/[.05] px-3 py-2 text-[13px]">
-                  <span className="truncate font-semibold">
-                    {m.short} <span className="font-normal text-ink-faint">{m.unit}</span>
+                <div key={m.id} className="grid grid-cols-[minmax(0,1fr)_44px_54px_48px_48px] items-center gap-1.5 border-t border-white/[.05] px-3 py-2 text-[13px]">
+                  <span className="min-w-0 font-semibold leading-tight">
+                    <span className="line-clamp-2 break-words">{m.short}</span>
+                    {m.unit && <span className="block text-[11px] font-normal text-ink-faint">{m.unit}</span>}
                   </span>
-                  <Spark values={pts} />
+                  <Spark values={pts} width={44} />
                   <span className="text-right text-[15px] font-bold tabular">{fmtMeasure(d.last, m)}</span>
                   <span className="text-right text-ink-muted">
                     <Delta v={d.dPrev} def={m} />
