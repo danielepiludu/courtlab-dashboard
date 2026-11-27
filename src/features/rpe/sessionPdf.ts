@@ -36,6 +36,38 @@ export interface SessionPdfInput {
   compress?: boolean;
 }
 
+/** Colori della squadra adatti alla stampa su carta bianca. */
+export function sessionPalette(team: Pick<Team, 'primary' | 'secondary'>) {
+  const primary = normalizeHex(team.primary) ?? '#002855';
+  const secondary = normalizeHex(team.secondary) ?? '#ee3239';
+  const accent = contrast(secondary, '#ffffff') >= 2.4 ? secondary : contrast(primary, '#ffffff') >= 2.4 ? primary : darken(secondary, 0.45);
+  const onPrimary = contrast('#ffffff', primary) >= contrast('#111111', primary) ? '#ffffff' : '#111111';
+  return { primary, accent, onPrimary };
+}
+
+/** Righe e totali della seduta (atleti in ordine di cognome), usati da PDF e stampa. */
+export function sessionSummary(input: Pick<SessionPdfInput, 'session' | 'players' | 'entries' | 'workLoad'>) {
+  const s = input.session;
+  const players = [...input.players].sort(compareSurname);
+  const byPlayer = new Map(input.entries.filter((e) => e.sessionId === s.id).map((e) => [e.playerId, e]));
+  const rows = players.map((p) => {
+    const e = byPlayer.get(p.id!);
+    const rpe = e?.rpe ?? null;
+    const minutes = e?.minutes ?? s.minutes;
+    return { p, rpe, minutes, tl: entryTL({ rpe, minutes }), wl: input.workLoad?.get(p.id!) ?? null, label: rpe != null ? (RPE_SCALE.find((v) => v.value === rpe)?.label ?? '') : '' };
+  });
+  const answered = rows.filter((r) => r.rpe != null);
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  return {
+    rows,
+    answered,
+    rpeAvg: avg(answered.map((r) => r.rpe as number)),
+    tlAvg: avg(answered.map((r) => r.tl ?? 0)),
+    tlTot: answered.reduce((t, r) => t + (r.tl ?? 0), 0),
+    hasWl: rows.some((r) => r.wl != null),
+  };
+}
+
 export function sessionPdfFileName(s: TrainingSession): string {
   return `rpe-${s.type === 'partita' ? 'partita' : 'allenamento'}-${s.date}.pdf`;
 }
@@ -47,12 +79,10 @@ export async function buildSessionPdf(input: SessionPdfInput): Promise<JsPDF> {
   const W = 210;
   const H = 297;
   const M = 12;
-  const primaryHex = normalizeHex(team.primary) ?? '#002855';
-  const secondaryHex = normalizeHex(team.secondary) ?? '#ee3239';
-  const primary = rgb(primaryHex);
-  const accentHex = contrast(secondaryHex, '#ffffff') >= 2.4 ? secondaryHex : contrast(primaryHex, '#ffffff') >= 2.4 ? primaryHex : darken(secondaryHex, 0.45);
-  const accent = rgb(accentHex);
-  const onPrimary: RGB = contrast('#ffffff', primaryHex) >= contrast('#111111', primaryHex) ? [255, 255, 255] : [17, 17, 17];
+  const pal = sessionPalette(team);
+  const primary = rgb(pal.primary);
+  const accent = rgb(pal.accent);
+  const onPrimary = rgb(pal.onPrimary);
   const light = mix(primary, [255, 255, 255], 0.92);
 
   const text = (t: string, x: number, y: number, o: { size?: number; bold?: boolean; color?: RGB; align?: 'left' | 'right' | 'center' } = {}) => {
@@ -82,19 +112,7 @@ export async function buildSessionPdf(input: SessionPdfInput): Promise<JsPDF> {
   text(APP.name, W - M, 11, { size: 8.5, color: onPrimary, align: 'right' });
 
   // ── riepilogo ──
-  const players = [...input.players].sort(compareSurname);
-  const byPlayer = new Map(input.entries.filter((e) => e.sessionId === s.id).map((e) => [e.playerId, e]));
-  const rows = players.map((p) => {
-    const e = byPlayer.get(p.id!);
-    const rpe = e?.rpe ?? null;
-    const minutes = e?.minutes ?? s.minutes;
-    return { p, rpe, minutes, tl: entryTL({ rpe, minutes }), wl: input.workLoad?.get(p.id!) ?? null };
-  });
-  const answered = rows.filter((r) => r.rpe != null);
-  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-  const rpeAvg = avg(answered.map((r) => r.rpe as number));
-  const tlAvg = avg(answered.map((r) => r.tl ?? 0));
-  const tlTot = answered.reduce((t, r) => t + (r.tl ?? 0), 0);
+  const { rows, answered, rpeAvg, tlAvg, tlTot, hasWl } = sessionSummary(input);
 
   let y = 38;
   const tiles: [string, string][] = [
@@ -115,7 +133,6 @@ export async function buildSessionPdf(input: SessionPdfInput): Promise<JsPDF> {
   y += 24;
 
   // ── tabella ──
-  const hasWl = rows.some((r) => r.wl != null);
   const cols: { h: string; w: number; a: 'left' | 'right' | 'center' }[] = [
     { h: 'N.', w: 10, a: 'center' },
     { h: 'Atleta', w: 50, a: 'left' },
@@ -171,7 +188,7 @@ export async function buildSessionPdf(input: SessionPdfInput): Promise<JsPDF> {
     }
     x += cols[2].w;
     // percezione
-    text(r.rpe != null ? (RPE_SCALE.find((v) => v.value === r.rpe)?.label ?? '') : 'Nessuna risposta', x + 2, mid, { size: 8, color: muted ? MUTED : INK });
+    text(r.rpe != null ? r.label : 'Nessuna risposta', x + 2, mid, { size: 8, color: muted ? MUTED : INK });
     x += cols[3].w;
     // minuti, TL
     text(String(r.minutes), x + cols[4].w - 2, mid, { size: 8.5, color: muted ? MUTED : INK, align: 'right' });

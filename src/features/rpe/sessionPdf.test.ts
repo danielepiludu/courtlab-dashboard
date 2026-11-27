@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Player, RpeEntry, TrainingSession } from '@/db/types';
-import { buildSessionPdf, sessionPdfFileName } from './sessionPdf';
+import { buildSessionPdf, sessionPalette, sessionPdfFileName, sessionSummary } from './sessionPdf';
 
 const player = (id: number, name: string, number: string): Player => ({ id, teamId: 1, name, number, role: 'SF', traits: [], notes: '', status: 'available', statusDate: '', statusDetails: '', createdAt: 0, updatedAt: 0 });
 const players = [player(1, 'Marco Bianchi', '4'), player(2, 'Luca Rossi', '7'), player(3, 'Andrea Conti', '9')];
@@ -30,5 +30,20 @@ describe('PDF della seduta RPE', () => {
   it('nome del file', () => {
     expect(sessionPdfFileName(session)).toBe('rpe-allenamento-2026-11-23.pdf');
     expect(sessionPdfFileName({ ...session, type: 'partita' })).toBe('rpe-partita-2026-11-23.pdf');
+  });
+  it('riepilogo condiviso con la stampa', () => {
+    const r = sessionSummary({ session, players, entries, workLoad: new Map([[1, 1.42]]) });
+    expect(r.rows.map((x) => x.p.name)).toEqual(['Marco Bianchi', 'Andrea Conti', 'Luca Rossi']);
+    expect(r.answered.length).toBe(2);
+    expect(r.rpeAvg).toBe(6);
+    expect(r.tlTot).toBe(930);
+    expect(r.rows[0].label).toBeTruthy();
+    expect(r.rows[1].rpe).toBeNull();
+    expect(r.hasWl).toBe(true);
+  });
+  it('colori leggibili su carta bianca', () => {
+    const p = sessionPalette({ primary: '#002855', secondary: '#ffff00' });
+    expect(p.onPrimary).toBe('#ffffff');
+    expect(p.accent).not.toBe('#ffff00'); // il giallo su bianco non si legge
   });
 });
