@@ -1,6 +1,6 @@
 import { surnameFirst } from '@/db/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, FileDown, Trash } from 'lucide-react';
+import { Check, Printer, Share2, Trash } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/misc';
@@ -21,6 +21,7 @@ import { useActiveTeam } from '@/db/hooks';
 import { useCloud } from '@/cloud/client';
 import { deleteSurvey, publishSurvey } from '@/cloud/surveys';
 import { SurveyPanel } from './SurveyPanel';
+import { SessionPrint, type SessionPrintData } from './SessionPrint';
 
 export const rpeColor = (v: number | null | undefined) => (v == null ? undefined : intColor(v / 10));
 const fmtRpe = (v: number) => String(v).replace('.', ',');
@@ -68,11 +69,26 @@ function RpePicker({ player, entry, session, onPick, onClose }: { player: Player
   );
 }
 
+/** Work Load del giorno della seduta per ogni atleta, con le stesse formule dell'analisi. */
+async function sessionWorkLoad(s: TrainingSession, players: Player[]) {
+  const all = (await db.sessions.where('teamId').equals(s.teamId).toArray()).sort((a, b) => a.date.localeCompare(b.date));
+  const rpe = await db.rpe.where('teamId').equals(s.teamId).toArray();
+  const load = toLoadEntries(all, rpe, players);
+  let win = LOAD_CONFIG.windowDays;
+  try {
+    win = Math.min(28, Math.max(2, Number(localStorage.getItem('bm-rpe-window')) || win));
+  } catch {
+    /* predefinita */
+  }
+  return { rpe, workLoad: new Map(players.map((p) => [p.id!, athleteSeries(load, p.id!, win).find((d) => d.date === s.date)?.acwr ?? null])) };
+}
+
 /** Seduta: data e durata (le inserisce lo staff) e RPE di ogni atleta. */
 export function SessionSheet({ session, players, entries, readOnly, onClose }: { session: TrainingSession | null; players: Player[]; entries: RpeEntry[]; readOnly: boolean; onClose: () => void }) {
   const [draft, setDraft] = useState<TrainingSession | null>(session);
   const [picking, setPicking] = useState<Player | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [printing, setPrinting] = useState<(SessionPrintData & { at: number }) | null>(null);
   const team = useActiveTeam();
   const logged = useCloud((x) => !!x.session);
   const dirty = useRef(false);
@@ -101,23 +117,13 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
     onClose();
   };
 
-  // PDF della seduta: condiviso (WhatsApp, Drive…) o scaricato
+  // PDF della seduta: condiviso (WhatsApp, email, Drive…) o, se il dispositivo non lo permette, scaricato
   const sharePdf = async () => {
     if (!team) return;
     setPdfBusy(true);
     try {
       const [{ buildSessionPdf, sessionPdfFileName }, { logoForPdf }] = await Promise.all([import('./sessionPdf'), import('@/features/report/pdf')]);
-      // Work Load del giorno, con le stesse formule dell'analisi
-      const all = (await db.sessions.where('teamId').equals(s.teamId).toArray()).sort((a, b) => a.date.localeCompare(b.date));
-      const rpe = await db.rpe.where('teamId').equals(s.teamId).toArray();
-      const load = toLoadEntries(all, rpe, players);
-      let win = LOAD_CONFIG.windowDays;
-      try {
-        win = Math.min(28, Math.max(2, Number(localStorage.getItem('bm-rpe-window')) || win));
-      } catch {
-        /* predefinita */
-      }
-      const workLoad = new Map(players.map((p) => [p.id!, athleteSeries(load, p.id!, win).find((d) => d.date === s.date)?.acwr ?? null]));
+      const { rpe, workLoad } = await sessionWorkLoad(s, players);
       const doc = await buildSessionPdf({ session: s, team, players, entries: rpe.filter((e) => e.sessionId === s.id), workLoad, logo: await logoForPdf(teamLogoSrc(team)) });
       const r = await deliverFile(doc.output('blob'), sessionPdfFileName(s), 'share');
       haptic.confirm();
@@ -127,6 +133,19 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
       toast('PDF non riuscito', 'error');
     } finally {
       setPdfBusy(false);
+    }
+  };
+
+  // stampa: pagina A4 con la finestra di stampa del sistema (stampante, AirPrint o "Salva come PDF")
+  const print = async () => {
+    if (!team) return;
+    haptic.tap();
+    try {
+      const { rpe, workLoad } = await sessionWorkLoad(s, players);
+      setPrinting({ session: s, team, players, entries: rpe.filter((e) => e.sessionId === s.id), workLoad, logo: teamLogoSrc(team), at: Date.now() });
+    } catch (e) {
+      console.error(e);
+      toast('Stampa non riuscita', 'error');
     }
   };
 
@@ -168,7 +187,6 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
                 }}
               />
             )}
-            <Button size="lg" className="px-4" aria-label="Condividi PDF della seduta" disabled={pdfBusy || !answered.length} icon={<FileDown size={20} />} onClick={() => void sharePdf()} />
             <Button variant="primary" size="lg" className="flex-1" onClick={close}>
               {readOnly ? 'Chiudi' : 'Fatto'}
             </Button>
@@ -192,6 +210,18 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
             risposte · RPE medio{' '}
             <b style={{ color: rpeColor(avgRpe) }}>{avgRpe == null ? '–' : avgRpe.toFixed(1).replace('.', ',')}</b> · TL medio <b className="text-ink">{avgTl == null ? '–' : Math.round(avgTl)}</b>
           </p>
+        </fieldset>
+        {answered.length > 0 && (
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <Button disabled={pdfBusy} icon={<Share2 size={18} />} onClick={() => void sharePdf()}>
+              {pdfBusy ? 'Creazione…' : 'Invia PDF'}
+            </Button>
+            <Button icon={<Printer size={18} />} onClick={() => void print()}>
+              Stampa
+            </Button>
+          </div>
+        )}
+        <fieldset disabled={readOnly} className="min-w-0">
           {!readOnly && s.id != null && <SurveyPanel session={s} players={players} missing={players.length - answered.length} />}
           <div className="overflow-hidden rounded-2xl bg-surface">
             {players.map((p) => {
@@ -220,6 +250,7 @@ export function SessionSheet({ session, players, entries, readOnly, onClose }: {
           </div>
         </fieldset>
       </Sheet>
+      {printing && <SessionPrint key={printing.at} data={printing} onDone={() => setPrinting(null)} />}
       {!readOnly && <RpePicker player={picking} entry={picking ? mine.get(picking.id!) : undefined} session={s} onPick={pick} onClose={() => setPicking(null)} />}
     </>
   );

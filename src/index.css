@@ -302,3 +302,174 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Stampa della seduta RPE (SessionPrint): visibile solo in stampa ── */
+#print-root {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  :root {
+    color-scheme: light !important;
+  }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  body:has(> #print-root) > *:not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+    color: #1c2028;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .pr-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    background: var(--pr-primary);
+    color: var(--pr-on);
+    border-bottom: 3px solid var(--pr-accent);
+  }
+  .pr-logo {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+  }
+  .pr-grow {
+    flex: 1;
+  }
+  .pr-kicker {
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .pr-title {
+    font-size: 17pt;
+    font-weight: 700;
+    margin: 2px 0;
+  }
+  .pr-title::first-letter {
+    text-transform: uppercase;
+  }
+  .pr-sub {
+    font-size: 9.5pt;
+  }
+  .pr-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .pr-tile {
+    background: color-mix(in srgb, var(--pr-primary) 8%, #fff);
+    border-radius: 6px;
+    padding: 7px 9px;
+  }
+  .pr-tile-label {
+    font-size: 7pt;
+    font-weight: 700;
+    color: #6e7684;
+    text-transform: uppercase;
+  }
+  .pr-tile-value {
+    font-size: 15pt;
+    font-weight: 700;
+  }
+  .pr-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .pr-table th {
+    background: var(--pr-primary);
+    color: var(--pr-on);
+    font-size: 8pt;
+    text-align: left;
+    padding: 5px 6px;
+  }
+  .pr-table td {
+    padding: 4px 6px;
+    font-size: 9.5pt;
+    border-bottom: 1px solid #eceef2;
+  }
+  .pr-table tr {
+    break-inside: avoid;
+  }
+  .pr-table tbody tr:nth-child(even) td {
+    background: #f6f7f9;
+  }
+  .pr-c {
+    text-align: center !important;
+  }
+  .pr-r {
+    text-align: right !important;
+    white-space: nowrap;
+  }
+  .pr-num {
+    font-weight: 700;
+    color: var(--pr-accent);
+  }
+  .pr-name,
+  .pr-strong {
+    font-weight: 700;
+  }
+  .pr-muted td {
+    color: #6e7684;
+    font-weight: 400;
+  }
+  .pr-rpe {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pr-bar {
+    flex: 1;
+    min-width: 60px;
+    height: 6px;
+    border-radius: 3px;
+    background: #e8ebf0;
+    overflow: hidden;
+  }
+  .pr-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+  }
+  .pr-rpe b {
+    width: 22px;
+    text-align: right;
+    font-size: 11pt;
+  }
+  .pr-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: 1px;
+  }
+  .pr-note {
+    margin-top: 10px;
+    font-size: 8pt;
+    color: #6e7684;
+  }
+  .pr-foot {
+    margin-top: 14px;
+    padding-top: 6px;
+    border-top: 1px solid var(--pr-accent);
+    font-size: 7.5pt;
+    color: #6e7684;
+  }
+}
